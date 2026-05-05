@@ -1,0 +1,28 @@
+# TOP image — cross builds + QEMU emulation + GDB attach.
+#
+# Layered on top of the FreeRTOS sources image. Adds the ARM cross toolchain
+# and qemu-system-arm so Example/FreeRtos targets can cross-compile and run
+# under emulation in CI and on developer machines.
+#
+# BASE_TAG is supplied by the publishing workflow and pins the FROM image to
+# the same SHA-tag the host image was just published as in the same workflow
+# run. For local builds, override at build time:
+#   docker build --build-arg BASE_TAG=sha-<short> -f dockerfile.cross .
+
+ARG BASE_TAG=latest
+FROM ghcr.io/davidcozens/cpputest-freertos:${BASE_TAG}
+LABEL Description="CppUTest + FreeRTOS sources + ARM cross toolchain + QEMU"
+
+USER root
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      gcc-arm-none-eabi \
+      gdb-multiarch \
+      qemu-system-arm \
+ && update-alternatives --install /usr/bin/arm-none-eabi-gdb arm-none-eabi-gdb \
+      /usr/bin/gdb-multiarch 100 \
+ && rm -rf /var/lib/apt/lists/*
+
+USER developer
+WORKDIR /home/src

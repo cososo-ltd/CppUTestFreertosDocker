@@ -1,0 +1,59 @@
+# MIDDLE image — host-TDD of FreeRTOS adapters.
+#
+# Layered on top of the GCC + CppUTest base, adding upstream FreeRTOS-Kernel,
+# FreeRTOS-Plus-TCP, FreeRTOS-Plus-FAT, and Mbed TLS sources at fixed paths.
+# Adapter source files compile in the consumer's project against fakes from
+# Tests/Support/FreeRtosFakes/ — see SolidSyslog repo, S08.01.
+#
+# No cross compiler. See dockerfile.cross for the target-build variant.
+
+FROM ghcr.io/davidcozens/cpputest:sha-18f19e1
+LABEL Description="CppUTest base + FreeRTOS / Mbed TLS sources for host-side TDD"
+
+USER root
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# Each upstream is pulled at a release tag (or commit SHA where no tag exists)
+# and SHA-gated so a moved tag fails the build loudly.
+
+ARG FREERTOS_KERNEL_TAG=V11.1.0
+ARG FREERTOS_KERNEL_SHA=dbf70559b27d39c1fdb68dfb9a32140b6a6777a0
+RUN git clone --depth=1 --branch=${FREERTOS_KERNEL_TAG} \
+      https://github.com/FreeRTOS/FreeRTOS-Kernel.git /opt/freertos/kernel \
+ && cd /opt/freertos/kernel \
+ && [ "$(git rev-parse HEAD)" = "${FREERTOS_KERNEL_SHA}" ] \
+ && git submodule update --init --recursive --depth=1
+ENV FREERTOS_KERNEL_PATH=/opt/freertos/kernel
+
+ARG FREERTOS_PLUS_TCP_TAG=V4.2.2
+ARG FREERTOS_PLUS_TCP_SHA=abcb94c8768532a6cae3c39ffe37602640992a28
+RUN git clone --depth=1 --branch=${FREERTOS_PLUS_TCP_TAG} \
+      https://github.com/FreeRTOS/FreeRTOS-Plus-TCP.git /opt/freertos/plus-tcp \
+ && cd /opt/freertos/plus-tcp \
+ && [ "$(git rev-parse HEAD)" = "${FREERTOS_PLUS_TCP_SHA}" ] \
+ && git submodule update --init --recursive --depth=1
+ENV FREERTOS_PLUS_TCP_PATH=/opt/freertos/plus-tcp
+
+# FreeRTOS-Plus-FAT lives under FreeRTOS/Lab-Project-FreeRTOS-FAT and ships
+# without release tags, so pin by commit SHA on `main`. Bump the SHA when a
+# real release tag appears upstream.
+ARG FREERTOS_PLUS_FAT_SHA=8d38036c9344bb913083e4842b1a7b7c01e2daac
+RUN git clone https://github.com/FreeRTOS/Lab-Project-FreeRTOS-FAT.git /opt/freertos/plus-fat \
+ && cd /opt/freertos/plus-fat \
+ && git checkout ${FREERTOS_PLUS_FAT_SHA} \
+ && git submodule update --init --recursive --depth=1
+ENV FREERTOS_PLUS_FAT_PATH=/opt/freertos/plus-fat
+
+ARG MBEDTLS_TAG=v3.6.2
+ARG MBEDTLS_SHA=107ea89daaefb9867ea9121002fbbdf926780e98
+RUN git clone --depth=1 --branch=${MBEDTLS_TAG} \
+      https://github.com/Mbed-TLS/mbedtls.git /opt/mbedtls \
+ && cd /opt/mbedtls \
+ && [ "$(git rev-parse HEAD)" = "${MBEDTLS_SHA}" ] \
+ && git submodule update --init --recursive --depth=1
+ENV MBEDTLS_DIR=/opt/mbedtls
+
+RUN chown -R developer:developer /opt/freertos /opt/mbedtls
+
+USER developer
+WORKDIR /home/src

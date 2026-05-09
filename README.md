@@ -13,7 +13,7 @@ host-side TDD of `Platform/FreeRtos/` adapters and for cross-building
 | Image | Built from | Adds | Use |
 |---|---|---|---|
 | `ghcr.io/davidcozens/cpputest-freertos` (MIDDLE) | `cpputest@sha-18f19e1` | FreeRTOS-Kernel, Plus-TCP, Plus-FAT, Mbed TLS sources at `/opt/...` + `FREERTOS_*_PATH` / `MBEDTLS_DIR` env vars | Host-TDD of FreeRTOS adapters against fakes |
-| `ghcr.io/davidcozens/cpputest-freertos-cross` (TOP) | `cpputest-freertos:sha-<same>` | `gcc-arm-none-eabi`, `gdb-multiarch` (aliased as `arm-none-eabi-gdb`), `qemu-system-arm` | Cross builds, on-QEMU runs, GDB attach |
+| `ghcr.io/davidcozens/cpputest-freertos-cross` (TOP) | `cpputest-freertos:sha-<same>` | `gcc-arm-none-eabi`, `gdb-multiarch` (aliased as `arm-none-eabi-gdb`), `qemu-system-arm`, `python3` + `behave==1.3.3` | Cross builds, on-QEMU runs, GDB attach, BDD scenarios that drive a QEMU target |
 
 The TOP image FROMs the MIDDLE image at the same SHA tag; the publishing
 workflow wires this automatically (see `.github/workflows/docker-publish.yml`).

@@ -21,9 +21,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libnewlib-arm-none-eabi \
       gdb-multiarch \
       qemu-system-arm \
+      python3 \
+      python3-pip \
  && update-alternatives --install /usr/bin/arm-none-eabi-gdb arm-none-eabi-gdb \
       /usr/bin/gdb-multiarch 100 \
  && rm -rf /var/lib/apt/lists/*
+
+# Behave is pinned to match SolidSyslog's Bdd/requirements.txt so the
+# cross image, the upstream behave image, and the Windows runner all
+# resolve to the same Behave version. The cross image hosts both the
+# QEMU emulation and the Behave runner that drives it (FreeRTOS BDD
+# scenarios in SolidSyslog S08.03 slice 5).
+RUN pip install --no-cache-dir --break-system-packages behave==1.3.3
 
 USER developer
 WORKDIR /home/src

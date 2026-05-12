@@ -1,14 +1,14 @@
 # MIDDLE image — host-TDD of FreeRTOS adapters.
 #
 # Layered on top of the GCC + CppUTest base, adding upstream FreeRTOS-Kernel,
-# FreeRTOS-Plus-TCP, FreeRTOS-Plus-FAT, and Mbed TLS sources at fixed paths.
+# FreeRTOS-Plus-TCP, FatFs (ChaN), and Mbed TLS sources at fixed paths.
 # Adapter source files compile in the consumer's project against fakes from
 # Tests/Support/FreeRtosFakes/ — see SolidSyslog repo, S08.01.
 #
 # No cross compiler. See dockerfile.cross for the target-build variant.
 
 FROM ghcr.io/davidcozens/cpputest:sha-18f19e1
-LABEL Description="CppUTest base + FreeRTOS / Mbed TLS sources for host-side TDD"
+LABEL Description="CppUTest base + FreeRTOS / FatFs / Mbed TLS sources for host-side TDD"
 
 USER root
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -34,15 +34,19 @@ RUN git clone --depth=1 --branch=${FREERTOS_PLUS_TCP_TAG} \
  && git submodule update --init --recursive --depth=1
 ENV FREERTOS_PLUS_TCP_PATH=/opt/freertos/plus-tcp
 
-# FreeRTOS-Plus-FAT lives under FreeRTOS/Lab-Project-FreeRTOS-FAT and ships
-# without release tags, so pin by commit SHA on `main`. Bump the SHA when a
-# real release tag appears upstream.
-ARG FREERTOS_PLUS_FAT_SHA=8d38036c9344bb913083e4842b1a7b7c01e2daac
-RUN git clone https://github.com/FreeRTOS/Lab-Project-FreeRTOS-FAT.git /opt/freertos/plus-fat \
- && cd /opt/freertos/plus-fat \
- && git checkout ${FREERTOS_PLUS_FAT_SHA} \
- && git submodule update --init --recursive --depth=1
-ENV FREERTOS_PLUS_FAT_PATH=/opt/freertos/plus-fat
+# FatFs (ChaN) — the de facto embedded filesystem (used by Zephyr, NuttX,
+# MicroPython, STM32 HAL, ESP-IDF, Arduino SD ecosystem). ChaN distributes
+# FatFs as zip tarballs only — no upstream Git repo — so we pull from the
+# long-running community mirror github.com/abbrev/fatfs which faithfully
+# tags ChaN's official releases. SHA-gated so a retagged mirror fails the
+# build loudly. Bump the tag + SHA together when a new FatFs release lands.
+ARG FATFS_TAG=R0.16
+ARG FATFS_SHA=30ca13c62615df0d2e9104ab41256985b96590c1
+RUN git clone --depth=1 --branch=${FATFS_TAG} \
+      https://github.com/abbrev/fatfs.git /opt/fatfs \
+ && cd /opt/fatfs \
+ && [ "$(git rev-parse HEAD)" = "${FATFS_SHA}" ]
+ENV FATFS_PATH=/opt/fatfs
 
 ARG MBEDTLS_TAG=v3.6.2
 ARG MBEDTLS_SHA=107ea89daaefb9867ea9121002fbbdf926780e98
@@ -53,7 +57,7 @@ RUN git clone --depth=1 --branch=${MBEDTLS_TAG} \
  && git submodule update --init --recursive --depth=1
 ENV MBEDTLS_DIR=/opt/mbedtls
 
-RUN chown -R developer:developer /opt/freertos /opt/mbedtls
+RUN chown -R developer:developer /opt/freertos /opt/fatfs /opt/mbedtls
 
 USER developer
 WORKDIR /home/src

@@ -12,7 +12,7 @@ host-side TDD of `Platform/FreeRtos/` adapters and for cross-building
 
 | Image | Built from | Adds | Use |
 |---|---|---|---|
-| `ghcr.io/davidcozens/cpputest-freertos` (MIDDLE) | `cpputest@sha-18f19e1` | FreeRTOS-Kernel, Plus-TCP, Plus-FAT, Mbed TLS sources at `/opt/...` + `FREERTOS_*_PATH` / `MBEDTLS_DIR` env vars | Host-TDD of FreeRTOS adapters against fakes |
+| `ghcr.io/davidcozens/cpputest-freertos` (MIDDLE) | `cpputest@sha-18f19e1` | FreeRTOS-Kernel, Plus-TCP, FatFs, Mbed TLS sources at `/opt/...` + `FREERTOS_*_PATH` / `FATFS_PATH` / `MBEDTLS_DIR` env vars | Host-TDD of FreeRTOS adapters against fakes |
 | `ghcr.io/davidcozens/cpputest-freertos-cross` (TOP) | `cpputest-freertos:sha-<same>` | `gcc-arm-none-eabi`, `gdb-multiarch` (aliased as `arm-none-eabi-gdb`), `qemu-system-arm`, `python3` + `behave==1.3.3` | Cross builds, on-QEMU runs, GDB attach, BDD scenarios that drive a QEMU target |
 
 The TOP image FROMs the MIDDLE image at the same SHA tag; the publishing
@@ -24,12 +24,14 @@ workflow wires this automatically (see `.github/workflows/docker-publish.yml`).
 |---|---|---|---|
 | FreeRTOS-Kernel | `FreeRTOS/FreeRTOS-Kernel` | tag `V11.1.0` | `dbf70559b27d39c1fdb68dfb9a32140b6a6777a0` |
 | FreeRTOS-Plus-TCP | `FreeRTOS/FreeRTOS-Plus-TCP` | tag `V4.2.2` | `abcb94c8768532a6cae3c39ffe37602640992a28` |
-| FreeRTOS-Plus-FAT | `FreeRTOS/Lab-Project-FreeRTOS-FAT` | branch `main` | `8d38036c9344bb913083e4842b1a7b7c01e2daac` |
+| FatFs (ChaN) | `abbrev/fatfs` (community Git mirror of <http://elm-chan.org/fsw/ff/>) | tag `R0.16` | `30ca13c62615df0d2e9104ab41256985b96590c1` |
 | Mbed TLS | `Mbed-TLS/mbedtls` | tag `v3.6.2` (LTS) | `107ea89daaefb9867ea9121002fbbdf926780e98` |
 
-FreeRTOS-Plus-FAT has no upstream release tags — it is a Lab project — so it
-is pinned by commit SHA on `main`. When a release tag appears upstream, switch
-to it and update `dockerfile.host` accordingly.
+FatFs is distributed by ChaN as zip tarballs only — there is no upstream Git
+repo. We pull from the long-running community mirror `github.com/abbrev/fatfs`
+which faithfully tags ChaN's official releases (R0.10 through R0.16 at the
+time of writing). The SHA gate ensures a retagged mirror fails the build
+loudly. Bump tag and SHA together when a new FatFs release lands.
 
 Each `RUN git clone ...` is followed by a SHA gate (`[ "$(git rev-parse HEAD)" = "..." ]`)
 so a moved upstream tag fails the build loudly rather than silently picking up

@@ -13,6 +13,10 @@ LABEL Description="CppUTest base + FreeRTOS / FatFs / Mbed TLS sources for host-
 USER root
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends xxd \
+ && rm -rf /var/lib/apt/lists/*
+
 # Each upstream is pulled at a release tag (or commit SHA where no tag exists)
 # and SHA-gated so a moved tag fails the build loudly.
 

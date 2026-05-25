@@ -12,7 +12,7 @@ host-side TDD of `Platform/FreeRtos/` adapters and for cross-building
 
 | Image | Built from | Adds | Use |
 |---|---|---|---|
-| `ghcr.io/davidcozens/cpputest-freertos` (MIDDLE) | `cpputest@sha-18f19e1` | FreeRTOS-Kernel, Plus-TCP, FatFs, Mbed TLS sources at `/opt/...` + `FREERTOS_*_PATH` / `FATFS_PATH` / `MBEDTLS_DIR` env vars | Host-TDD of FreeRTOS adapters against fakes |
+| `ghcr.io/davidcozens/cpputest-freertos` (MIDDLE) | `cpputest@sha-18f19e1` | FreeRTOS-Kernel, Plus-TCP, lwIP, FatFs, Mbed TLS sources at `/opt/...` + `FREERTOS_*_PATH` / `LWIP_PATH` / `FATFS_PATH` / `MBEDTLS_DIR` env vars | Host-TDD of FreeRTOS adapters against fakes |
 | `ghcr.io/davidcozens/cpputest-freertos-cross` (TOP) | `cpputest-freertos:sha-<same>` | `gcc-arm-none-eabi`, `gdb-multiarch` (aliased as `arm-none-eabi-gdb`), `qemu-system-arm`, `python3` + `behave==1.3.3` | Cross builds, on-QEMU runs, GDB attach, BDD scenarios that drive a QEMU target |
 
 The TOP image FROMs the MIDDLE image at the same SHA tag; the publishing
@@ -24,6 +24,7 @@ workflow wires this automatically (see `.github/workflows/docker-publish.yml`).
 |---|---|---|---|
 | FreeRTOS-Kernel | `FreeRTOS/FreeRTOS-Kernel` | tag `V11.1.0` | `dbf70559b27d39c1fdb68dfb9a32140b6a6777a0` |
 | FreeRTOS-Plus-TCP | `FreeRTOS/FreeRTOS-Plus-TCP` | tag `V4.2.2` | `abcb94c8768532a6cae3c39ffe37602640992a28` |
+| lwIP | `lwip-tcpip/lwip` (GitHub mirror of <https://savannah.nongnu.org/projects/lwip/>) | tag `STABLE-2_2_1_RELEASE` | `77dcd25a72509eb83f72b033d219b1d40cd8eb95` |
 | FatFs (ChaN) | `abbrev/fatfs` (community Git mirror of <http://elm-chan.org/fsw/ff/>) | tag `R0.16` | `30ca13c62615df0d2e9104ab41256985b96590c1` |
 | Mbed TLS | `Mbed-TLS/mbedtls` | tag `v3.6.2` (LTS) | `107ea89daaefb9867ea9121002fbbdf926780e98` |
 

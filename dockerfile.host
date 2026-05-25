@@ -38,6 +38,21 @@ RUN git clone --depth=1 --branch=${FREERTOS_PLUS_TCP_TAG} \
  && git submodule update --init --recursive --depth=1
 ENV FREERTOS_PLUS_TCP_PATH=/opt/freertos/plus-tcp
 
+# lwIP — second FreeRTOS networking backend (alongside FreeRTOS-Plus-TCP).
+# Consumers pick one at build time via the SOLIDSYSLOG_FREERTOS_NET CMake
+# option; both stacks ship in the same image so a single dev container can
+# context-switch between them. lwIP's Raw API supports NO_SYS=1 (bare-metal
+# or RTOS without a dedicated IP task) which Plus-TCP does not, covering
+# embedded customers already on lwIP. Pulled from the GitHub mirror to match
+# the existing dockerfile pattern. No submodules.
+ARG LWIP_TAG=STABLE-2_2_1_RELEASE
+ARG LWIP_SHA=77dcd25a72509eb83f72b033d219b1d40cd8eb95
+RUN git clone --depth=1 --branch=${LWIP_TAG} \
+      https://github.com/lwip-tcpip/lwip.git /opt/lwip \
+ && cd /opt/lwip \
+ && [ "$(git rev-parse HEAD)" = "${LWIP_SHA}" ]
+ENV LWIP_PATH=/opt/lwip
+
 # FatFs (ChaN) — the de facto embedded filesystem (used by Zephyr, NuttX,
 # MicroPython, STM32 HAL, ESP-IDF, Arduino SD ecosystem). ChaN distributes
 # FatFs as zip tarballs only — no upstream Git repo — so we pull from the
@@ -61,7 +76,7 @@ RUN git clone --depth=1 --branch=${MBEDTLS_TAG} \
  && git submodule update --init --recursive --depth=1
 ENV MBEDTLS_DIR=/opt/mbedtls
 
-RUN chown -R developer:developer /opt/freertos /opt/fatfs /opt/mbedtls
+RUN chown -R developer:developer /opt/freertos /opt/lwip /opt/fatfs /opt/mbedtls
 
 USER developer
 WORKDIR /home/src

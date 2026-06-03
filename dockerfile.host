@@ -1,7 +1,8 @@
 # MIDDLE image — host-TDD of FreeRTOS adapters.
 #
 # Layered on top of the GCC + CppUTest base, adding upstream FreeRTOS-Kernel,
-# FreeRTOS-Plus-TCP, FatFs (ChaN), and Mbed TLS sources at fixed paths.
+# FreeRTOS-Plus-TCP, FreeRTOS-Plus-FAT, lwIP, FatFs (ChaN), and Mbed TLS
+# sources at fixed paths.
 # Adapter source files compile in the consumer's project against fakes from
 # Tests/Support/FreeRtosFakes/ — see SolidSyslog repo, S08.01.
 #
@@ -37,6 +38,22 @@ RUN git clone --depth=1 --branch=${FREERTOS_PLUS_TCP_TAG} \
  && [ "$(git rev-parse HEAD)" = "${FREERTOS_PLUS_TCP_SHA}" ] \
  && git submodule update --init --recursive --depth=1
 ENV FREERTOS_PLUS_TCP_PATH=/opt/freertos/plus-tcp
+
+# FreeRTOS-Plus-FAT — FAT filesystem for the FreeRTOS-Plus ecosystem, designed
+# to coexist with FreeRTOS-Plus-TCP. A FreeRTOS *Labs* project
+# (github.com/FreeRTOS/Lab-Project-FreeRTOS-FAT) — it ships no release tags, so
+# we pin the main-branch commit and SHA-gate it: a moved main fails the build
+# loudly, prompting a deliberate bump. Switch to a release tag if upstream ever
+# publishes one. Ships alongside FatFs (ChaN): consumers pick per target — the
+# lwIP target uses FatFs, the Plus-TCP target uses Plus-FAT (SolidSyslog E29).
+# No submodules.
+ARG FREERTOS_PLUS_FAT_BRANCH=main
+ARG FREERTOS_PLUS_FAT_SHA=8d38036c9344bb913083e4842b1a7b7c01e2daac
+RUN git clone --depth=1 --branch=${FREERTOS_PLUS_FAT_BRANCH} \
+      https://github.com/FreeRTOS/Lab-Project-FreeRTOS-FAT.git /opt/freertos/plus-fat \
+ && cd /opt/freertos/plus-fat \
+ && [ "$(git rev-parse HEAD)" = "${FREERTOS_PLUS_FAT_SHA}" ]
+ENV FREERTOS_PLUS_FAT_PATH=/opt/freertos/plus-fat
 
 # lwIP — second FreeRTOS networking backend (alongside FreeRTOS-Plus-TCP).
 # Consumers pick one at build time via the SOLIDSYSLOG_FREERTOS_NET CMake

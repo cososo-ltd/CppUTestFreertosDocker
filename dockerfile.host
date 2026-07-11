@@ -1,0 +1,99 @@
+# MIDDLE image — host-TDD of FreeRTOS adapters.
+#
+# Layered on top of the GCC + CppUTest base, adding upstream FreeRTOS-Kernel,
+# FreeRTOS-Plus-TCP, FreeRTOS-Plus-FAT, lwIP, FatFs (ChaN), and Mbed TLS
+# sources at fixed paths.
+# Adapter source files compile in the consumer's project against fakes from
+# Tests/Support/FreeRtosFakes/ — see SolidSyslog repo, S08.01.
+#
+# No cross compiler. See dockerfile.cross for the target-build variant.
+
+FROM ghcr.io/cososo-ltd/cpputest:sha-6715942
+LABEL Description="CppUTest base + FreeRTOS / FatFs / Mbed TLS sources for host-side TDD"
+
+USER root
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends xxd \
+ && rm -rf /var/lib/apt/lists/*
+
+# Each upstream is pulled at a release tag (or commit SHA where no tag exists)
+# and SHA-gated so a moved tag fails the build loudly.
+
+ARG FREERTOS_KERNEL_TAG=V11.1.0
+ARG FREERTOS_KERNEL_SHA=dbf70559b27d39c1fdb68dfb9a32140b6a6777a0
+RUN git clone --depth=1 --branch=${FREERTOS_KERNEL_TAG} \
+      https://github.com/FreeRTOS/FreeRTOS-Kernel.git /opt/freertos/kernel \
+ && cd /opt/freertos/kernel \
+ && [ "$(git rev-parse HEAD)" = "${FREERTOS_KERNEL_SHA}" ] \
+ && git submodule update --init --recursive --depth=1
+ENV FREERTOS_KERNEL_PATH=/opt/freertos/kernel
+
+ARG FREERTOS_PLUS_TCP_TAG=V4.2.2
+ARG FREERTOS_PLUS_TCP_SHA=abcb94c8768532a6cae3c39ffe37602640992a28
+RUN git clone --depth=1 --branch=${FREERTOS_PLUS_TCP_TAG} \
+      https://github.com/FreeRTOS/FreeRTOS-Plus-TCP.git /opt/freertos/plus-tcp \
+ && cd /opt/freertos/plus-tcp \
+ && [ "$(git rev-parse HEAD)" = "${FREERTOS_PLUS_TCP_SHA}" ] \
+ && git submodule update --init --recursive --depth=1
+ENV FREERTOS_PLUS_TCP_PATH=/opt/freertos/plus-tcp
+
+# FreeRTOS-Plus-FAT — FAT filesystem for the FreeRTOS-Plus ecosystem, designed
+# to coexist with FreeRTOS-Plus-TCP. A FreeRTOS *Labs* project
+# (github.com/FreeRTOS/Lab-Project-FreeRTOS-FAT) — it ships no release tags, so
+# we pin the main-branch commit and SHA-gate it: a moved main fails the build
+# loudly, prompting a deliberate bump. Switch to a release tag if upstream ever
+# publishes one. Ships alongside FatFs (ChaN): consumers pick per target — the
+# lwIP target uses FatFs, the Plus-TCP target uses Plus-FAT (SolidSyslog E29).
+# No submodules.
+ARG FREERTOS_PLUS_FAT_BRANCH=main
+ARG FREERTOS_PLUS_FAT_SHA=8d38036c9344bb913083e4842b1a7b7c01e2daac
+RUN git clone --depth=1 --branch=${FREERTOS_PLUS_FAT_BRANCH} \
+      https://github.com/FreeRTOS/Lab-Project-FreeRTOS-FAT.git /opt/freertos/plus-fat \
+ && cd /opt/freertos/plus-fat \
+ && [ "$(git rev-parse HEAD)" = "${FREERTOS_PLUS_FAT_SHA}" ]
+ENV FREERTOS_PLUS_FAT_PATH=/opt/freertos/plus-fat
+
+# lwIP — second FreeRTOS networking backend (alongside FreeRTOS-Plus-TCP).
+# Consumers pick one at build time via the SOLIDSYSLOG_FREERTOS_NET CMake
+# option; both stacks ship in the same image so a single dev container can
+# context-switch between them. lwIP's Raw API supports NO_SYS=1 (bare-metal
+# or RTOS without a dedicated IP task) which Plus-TCP does not, covering
+# embedded customers already on lwIP. Pulled from the GitHub mirror to match
+# the existing dockerfile pattern. No submodules.
+ARG LWIP_TAG=STABLE-2_2_1_RELEASE
+ARG LWIP_SHA=77dcd25a72509eb83f72b033d219b1d40cd8eb95
+RUN git clone --depth=1 --branch=${LWIP_TAG} \
+      https://github.com/lwip-tcpip/lwip.git /opt/lwip \
+ && cd /opt/lwip \
+ && [ "$(git rev-parse HEAD)" = "${LWIP_SHA}" ]
+ENV LWIP_PATH=/opt/lwip
+
+# FatFs (ChaN) — the de facto embedded filesystem (used by Zephyr, NuttX,
+# MicroPython, STM32 HAL, ESP-IDF, Arduino SD ecosystem). ChaN distributes
+# FatFs as zip tarballs only — no upstream Git repo — so we pull from the
+# long-running community mirror github.com/abbrev/fatfs which faithfully
+# tags ChaN's official releases. SHA-gated so a retagged mirror fails the
+# build loudly. Bump the tag + SHA together when a new FatFs release lands.
+ARG FATFS_TAG=R0.16
+ARG FATFS_SHA=30ca13c62615df0d2e9104ab41256985b96590c1
+RUN git clone --depth=1 --branch=${FATFS_TAG} \
+      https://github.com/abbrev/fatfs.git /opt/fatfs \
+ && cd /opt/fatfs \
+ && [ "$(git rev-parse HEAD)" = "${FATFS_SHA}" ]
+ENV FATFS_PATH=/opt/fatfs
+
+ARG MBEDTLS_TAG=v3.6.2
+ARG MBEDTLS_SHA=107ea89daaefb9867ea9121002fbbdf926780e98
+RUN git clone --depth=1 --branch=${MBEDTLS_TAG} \
+      https://github.com/Mbed-TLS/mbedtls.git /opt/mbedtls \
+ && cd /opt/mbedtls \
+ && [ "$(git rev-parse HEAD)" = "${MBEDTLS_SHA}" ] \
+ && git submodule update --init --recursive --depth=1
+ENV MBEDTLS_DIR=/opt/mbedtls
+
+RUN chown -R developer:developer /opt/freertos /opt/lwip /opt/fatfs /opt/mbedtls
+
+USER developer
+WORKDIR /home/src

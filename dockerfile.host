@@ -49,10 +49,11 @@ ENV FREERTOS_PLUS_TCP_PATH=/opt/freertos/plus-tcp
 # No submodules.
 ARG FREERTOS_PLUS_FAT_BRANCH=main
 ARG FREERTOS_PLUS_FAT_SHA=8d38036c9344bb913083e4842b1a7b7c01e2daac
-RUN git clone --depth=1 --branch=${FREERTOS_PLUS_FAT_BRANCH} \
-      https://github.com/FreeRTOS/Lab-Project-FreeRTOS-FAT.git /opt/freertos/plus-fat \
+RUN git init /opt/freertos/plus-fat \
  && cd /opt/freertos/plus-fat \
- && [ "$(git rev-parse HEAD)" = "${FREERTOS_PLUS_FAT_SHA}" ]
+ && git remote add origin https://github.com/FreeRTOS/Lab-Project-FreeRTOS-FAT.git \
+ && git fetch --depth 1 origin ${FREERTOS_PLUS_FAT_SHA} \
+ && git checkout FETCH_HEAD
 ENV FREERTOS_PLUS_FAT_PATH=/opt/freertos/plus-fat
 
 # lwIP — second FreeRTOS networking backend (alongside FreeRTOS-Plus-TCP).

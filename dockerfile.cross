@@ -10,7 +10,7 @@
 #   docker build --build-arg BASE_TAG=sha-<short> -f dockerfile.cross .
 
 ARG BASE_TAG=latest
-FROM ghcr.io/davidcozens/cpputest-freertos:${BASE_TAG}
+FROM ghcr.io/cososo-ltd/cpputest-freertos:${BASE_TAG}
 LABEL Description="CppUTest + FreeRTOS sources + ARM cross toolchain + QEMU"
 
 USER root

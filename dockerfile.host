@@ -1,15 +1,15 @@
 # MIDDLE image — host-TDD of FreeRTOS adapters.
 #
 # Layered on top of the GCC + CppUTest base, adding upstream FreeRTOS-Kernel,
-# FreeRTOS-Plus-TCP, FreeRTOS-Plus-FAT, lwIP, FatFs (ChaN), and Mbed TLS
-# sources at fixed paths.
+# FreeRTOS-Plus-TCP, FreeRTOS-Plus-FAT, lwIP, FatFs (ChaN), LittleFS, Mbed TLS,
+# CMSIS_6 and CMSIS-FreeRTOS sources at fixed paths.
 # Adapter source files compile in the consumer's project against fakes from
 # Tests/Support/FreeRtosFakes/ — see SolidSyslog repo, S08.01.
 #
 # No cross compiler. See dockerfile.cross for the target-build variant.
 
 FROM ghcr.io/cososo-ltd/cpputest:sha-6715942
-LABEL Description="CppUTest base + FreeRTOS / FatFs / Mbed TLS sources for host-side TDD"
+LABEL Description="CppUTest base + FreeRTOS / CMSIS-RTOS2 / FatFs / LittleFS / Mbed TLS sources for host-side TDD"
 
 USER root
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -85,6 +85,20 @@ RUN git clone --depth=1 --branch=${FATFS_TAG} \
  && [ "$(git rev-parse HEAD)" = "${FATFS_SHA}" ]
 ENV FATFS_PATH=/opt/fatfs
 
+# LittleFS — power-loss-resilient filesystem for raw NOR/NAND flash, where FAT
+# expects an FTL or an SD card underneath. Wear levelling, bounded RAM and
+# power-loss handling are design goals of the filesystem itself, which is what
+# makes it the third File-role backend (SolidSyslog E36). Two dependency-free C
+# files with no submodules, so it also builds on the host for the integration
+# suite that proves lfs_file_sync actually commits.
+ARG LITTLEFS_TAG=v2.11.3
+ARG LITTLEFS_SHA=6cb4e86540eca0d9ba62500a298385c9d863c8be
+RUN git clone --depth=1 --branch=${LITTLEFS_TAG} \
+      https://github.com/littlefs-project/littlefs.git /opt/littlefs \
+ && cd /opt/littlefs \
+ && [ "$(git rev-parse HEAD)" = "${LITTLEFS_SHA}" ]
+ENV LITTLEFS_PATH=/opt/littlefs
+
 ARG MBEDTLS_TAG=v3.6.2
 ARG MBEDTLS_SHA=107ea89daaefb9867ea9121002fbbdf926780e98
 RUN git clone --depth=1 --branch=${MBEDTLS_TAG} \
@@ -94,7 +108,38 @@ RUN git clone --depth=1 --branch=${MBEDTLS_TAG} \
  && git submodule update --init --recursive --depth=1
 ENV MBEDTLS_DIR=/opt/mbedtls
 
-RUN chown -R developer:developer /opt/freertos /opt/lwip /opt/fatfs /opt/mbedtls
+
+# CMSIS-RTOS2 arrives as two pieces, because neither half is complete alone.
+#
+# CMSIS_6 carries the API itself — cmsis_os2.h, which is the contract the
+# SolidSyslog CmsisRtos pack compiles against (SolidSyslog E40), plus os_tick.h
+# and cmsis_compiler.h that the implementation below includes. cmsis_os2.h is
+# pure declarations, so a test fake can stand in for it and the pack's unit
+# tests need nothing from this image; the BDD target needs the real thing.
+ARG CMSIS_TAG=v6.3.0
+ARG CMSIS_SHA=45dab712ad84f8cbbf2b7bfc089c19088507df6f
+RUN git clone --depth=1 --branch=${CMSIS_TAG} \
+      https://github.com/ARM-software/CMSIS_6.git /opt/cmsis \
+ && cd /opt/cmsis \
+ && [ "$(git rev-parse HEAD)" = "${CMSIS_SHA}" ]
+ENV CMSIS_PATH=/opt/cmsis
+
+# CMSIS-FreeRTOS carries the implementation — CMSIS/RTOS2/FreeRTOS/Source/
+# cmsis_os2.c over the kernel already at FREERTOS_KERNEL_PATH. It ships no
+# cmsis_os2.h of its own, which is why CMSIS_6 above is not optional.
+#
+# Pinned to v11.1.0 to match FreeRTOS-Kernel V11.1.0, not to the newest
+# release: the wrapper is written against a kernel version, so the two move
+# together or not at all. Bump both in one commit. No submodules.
+ARG CMSIS_FREERTOS_TAG=v11.1.0
+ARG CMSIS_FREERTOS_SHA=0bb666c1ff7430f5827e9469883b827df5b8fb06
+RUN git clone --depth=1 --branch=${CMSIS_FREERTOS_TAG} \
+      https://github.com/ARM-software/CMSIS-FreeRTOS.git /opt/cmsis-freertos \
+ && cd /opt/cmsis-freertos \
+ && [ "$(git rev-parse HEAD)" = "${CMSIS_FREERTOS_SHA}" ]
+ENV CMSIS_FREERTOS_PATH=/opt/cmsis-freertos
+
+RUN chown -R developer:developer /opt/freertos /opt/lwip /opt/fatfs /opt/littlefs /opt/mbedtls /opt/cmsis /opt/cmsis-freertos
 
 USER developer
 WORKDIR /home/src

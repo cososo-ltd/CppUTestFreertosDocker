@@ -12,7 +12,7 @@ host-side TDD of `Platform/FreeRtos/` adapters and for cross-building
 
 | Image | Built from | Adds | Use |
 |---|---|---|---|
-| `ghcr.io/davidcozens/cpputest-freertos` (MIDDLE) | `cpputest@sha-2c7b76b` | FreeRTOS-Kernel, Plus-TCP, Plus-FAT, lwIP, FatFs, Mbed TLS sources at `/opt/...` + `FREERTOS_*_PATH` / `LWIP_PATH` / `FATFS_PATH` / `MBEDTLS_DIR` env vars | Host-TDD of FreeRTOS adapters against fakes |
+| `ghcr.io/cososo-ltd/cpputest-freertos` (MIDDLE) | `cpputest@sha-6715942` | FreeRTOS-Kernel, Plus-TCP, Plus-FAT, lwIP, FatFs, LittleFS, Mbed TLS, CMSIS_6 and CMSIS-FreeRTOS sources at `/opt/...` + `FREERTOS_*_PATH` / `LWIP_PATH` / `FATFS_PATH` / `LITTLEFS_PATH` / `MBEDTLS_DIR` / `CMSIS_PATH` / `CMSIS_FREERTOS_PATH` env vars | Host-TDD of FreeRTOS and CMSIS-RTOS2 adapters against fakes |
 | `ghcr.io/davidcozens/cpputest-freertos-cross` (TOP) | `cpputest-freertos:sha-<same>` | `gcc-arm-none-eabi`, `gdb-multiarch` (aliased as `arm-none-eabi-gdb`), `qemu-system-arm`, `python3` + `behave==1.3.3` | Cross builds, on-QEMU runs, GDB attach, BDD scenarios that drive a QEMU target |
 
 The TOP image FROMs the MIDDLE image at the same SHA tag; the publishing

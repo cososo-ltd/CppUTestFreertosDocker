@@ -8,7 +8,7 @@
 #
 # No cross compiler. See dockerfile.cross for the target-build variant.
 
-FROM ghcr.io/cososo-ltd/cpputest:sha-6715942
+FROM ghcr.io/cososo-ltd/cpputest:sha-d5d2af8
 LABEL Description="CppUTest base + FreeRTOS / CMSIS-RTOS2 / FatFs / LittleFS / Mbed TLS / wolfSSL sources for host-side TDD"
 
 USER root

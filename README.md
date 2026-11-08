@@ -12,7 +12,7 @@ host-side TDD of `Platform/FreeRtos/` adapters and for cross-building
 
 | Image | Built from | Adds | Use |
 |---|---|---|---|
-| `ghcr.io/cososo-ltd/cpputest-freertos` (MIDDLE) | `cpputest@sha-6715942` | FreeRTOS-Kernel, Plus-TCP, Plus-FAT, lwIP, FatFs, LittleFS, Mbed TLS, wolfSSL, CMSIS_6 and CMSIS-FreeRTOS sources at `/opt/...` + `FREERTOS_*_PATH` / `LWIP_PATH` / `FATFS_PATH` / `LITTLEFS_PATH` / `MBEDTLS_DIR` / `WOLFSSL_SOURCE_DIR` / `CMSIS_PATH` / `CMSIS_FREERTOS_PATH` env vars | Host-TDD of FreeRTOS and CMSIS-RTOS2 adapters against fakes |
+| `ghcr.io/cososo-ltd/cpputest-freertos` (MIDDLE) | `cpputest@sha-d5d2af8` | FreeRTOS-Kernel, Plus-TCP, Plus-FAT, lwIP, FatFs, LittleFS, Mbed TLS, wolfSSL, CMSIS_6 and CMSIS-FreeRTOS sources at `/opt/...` + `FREERTOS_*_PATH` / `LWIP_PATH` / `FATFS_PATH` / `LITTLEFS_PATH` / `MBEDTLS_DIR` / `WOLFSSL_SOURCE_DIR` / `CMSIS_PATH` / `CMSIS_FREERTOS_PATH` env vars | Host-TDD of FreeRTOS and CMSIS-RTOS2 adapters against fakes |
 | `ghcr.io/davidcozens/cpputest-freertos-cross` (TOP) | `cpputest-freertos:sha-<same>` | `gcc-arm-none-eabi`, `gdb-multiarch` (aliased as `arm-none-eabi-gdb`), `qemu-system-arm`, `python3` + `behave==1.3.3` | Cross builds, on-QEMU runs, GDB attach, BDD scenarios that drive a QEMU target |
 
 The TOP image FROMs the MIDDLE image at the same SHA tag; the publishing
@@ -22,13 +22,16 @@ workflow wires this automatically (see `.github/workflows/docker-publish.yml`).
 
 | Component | Repo | Ref | Commit SHA |
 |---|---|---|---|
-| FreeRTOS-Kernel | `FreeRTOS/FreeRTOS-Kernel` | tag `V11.1.0` | `dbf70559b27d39c1fdb68dfb9a32140b6a6777a0` |
-| FreeRTOS-Plus-TCP | `FreeRTOS/FreeRTOS-Plus-TCP` | tag `V4.2.2` | `abcb94c8768532a6cae3c39ffe37602640992a28` |
-| FreeRTOS-Plus-FAT | `FreeRTOS/Lab-Project-FreeRTOS-FAT` | branch `main` (Labs project — no release tags) | `8d38036c9344bb913083e4842b1a7b7c01e2daac` |
+| FreeRTOS-Kernel | `FreeRTOS/FreeRTOS-Kernel` | tag `V11.3.3` | `89592801dd8b73329a7583719b7e3567b50910e5` |
+| FreeRTOS-Plus-TCP | `FreeRTOS/FreeRTOS-Plus-TCP` | tag `V4.4.2` | `b86ad086e9870099bb0ac18a75dcb7f6dd508cc7` |
+| FreeRTOS-Plus-FAT | `FreeRTOS/Lab-Project-FreeRTOS-FAT` | branch `main` (Labs project — no release tags) | `9ca465c3f2426c301b6b660286f3f964a2abdce5` |
 | lwIP | `lwip-tcpip/lwip` (GitHub mirror of <https://savannah.nongnu.org/projects/lwip/>) | tag `STABLE-2_2_1_RELEASE` | `77dcd25a72509eb83f72b033d219b1d40cd8eb95` |
 | FatFs (ChaN) | `abbrev/fatfs` (community Git mirror of <http://elm-chan.org/fsw/ff/>) | tag `R0.16` | `30ca13c62615df0d2e9104ab41256985b96590c1` |
-| Mbed TLS | `Mbed-TLS/mbedtls` | tag `v3.6.2` (LTS) | `107ea89daaefb9867ea9121002fbbdf926780e98` |
+| Mbed TLS | `Mbed-TLS/mbedtls` | tag `v3.6.7` (LTS) | `068ff080b369adfac81509f9b57b2afabaf82dc5` |
 | wolfSSL (source only, nothing built) | `wolfSSL/wolfssl` | tag `v5.9.4-stable` | `3c5eead44904df64e6a5a1f4ebdce377d35a849a` |
+| LittleFS | `littlefs-project/littlefs` | tag `v2.11.3` | `6cb4e86540eca0d9ba62500a298385c9d863c8be` |
+| CMSIS_6 | `ARM-software/CMSIS_6` | tag `v6.4.0` | `af1b110e46a1720349f6f125e386e126767699bd` |
+| CMSIS-FreeRTOS | `ARM-software/CMSIS-FreeRTOS` | tag `v11.3.0` | `4dd0035148cdc106f892877c27cba77d1de717d2` |
 
 FatFs is distributed by ChaN as zip tarballs only — there is no upstream Git
 repo. We pull from the long-running community mirror `github.com/abbrev/fatfs`

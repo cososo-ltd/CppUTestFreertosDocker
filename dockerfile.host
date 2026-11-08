@@ -21,8 +21,8 @@ RUN apt-get update \
 # Each upstream is pulled at a release tag (or commit SHA where no tag exists)
 # and SHA-gated so a moved tag fails the build loudly.
 
-ARG FREERTOS_KERNEL_TAG=V11.1.0
-ARG FREERTOS_KERNEL_SHA=dbf70559b27d39c1fdb68dfb9a32140b6a6777a0
+ARG FREERTOS_KERNEL_TAG=V11.3.3
+ARG FREERTOS_KERNEL_SHA=89592801dd8b73329a7583719b7e3567b50910e5
 RUN git clone --depth=1 --branch=${FREERTOS_KERNEL_TAG} \
       https://github.com/FreeRTOS/FreeRTOS-Kernel.git /opt/freertos/kernel \
  && cd /opt/freertos/kernel \
@@ -30,8 +30,8 @@ RUN git clone --depth=1 --branch=${FREERTOS_KERNEL_TAG} \
  && git submodule update --init --recursive --depth=1
 ENV FREERTOS_KERNEL_PATH=/opt/freertos/kernel
 
-ARG FREERTOS_PLUS_TCP_TAG=V4.2.2
-ARG FREERTOS_PLUS_TCP_SHA=abcb94c8768532a6cae3c39ffe37602640992a28
+ARG FREERTOS_PLUS_TCP_TAG=V4.4.2
+ARG FREERTOS_PLUS_TCP_SHA=b86ad086e9870099bb0ac18a75dcb7f6dd508cc7
 RUN git clone --depth=1 --branch=${FREERTOS_PLUS_TCP_TAG} \
       https://github.com/FreeRTOS/FreeRTOS-Plus-TCP.git /opt/freertos/plus-tcp \
  && cd /opt/freertos/plus-tcp \
@@ -48,7 +48,7 @@ ENV FREERTOS_PLUS_TCP_PATH=/opt/freertos/plus-tcp
 # lwIP target uses FatFs, the Plus-TCP target uses Plus-FAT (SolidSyslog E29).
 # No submodules.
 ARG FREERTOS_PLUS_FAT_BRANCH=main
-ARG FREERTOS_PLUS_FAT_SHA=8d38036c9344bb913083e4842b1a7b7c01e2daac
+ARG FREERTOS_PLUS_FAT_SHA=9ca465c3f2426c301b6b660286f3f964a2abdce5
 RUN git init /opt/freertos/plus-fat \
  && cd /opt/freertos/plus-fat \
  && git remote add origin https://github.com/FreeRTOS/Lab-Project-FreeRTOS-FAT.git \
@@ -99,8 +99,8 @@ RUN git clone --depth=1 --branch=${LITTLEFS_TAG} \
  && [ "$(git rev-parse HEAD)" = "${LITTLEFS_SHA}" ]
 ENV LITTLEFS_PATH=/opt/littlefs
 
-ARG MBEDTLS_TAG=v3.6.2
-ARG MBEDTLS_SHA=107ea89daaefb9867ea9121002fbbdf926780e98
+ARG MBEDTLS_TAG=v3.6.7
+ARG MBEDTLS_SHA=068ff080b369adfac81509f9b57b2afabaf82dc5
 RUN git clone --depth=1 --branch=${MBEDTLS_TAG} \
       https://github.com/Mbed-TLS/mbedtls.git /opt/mbedtls \
  && cd /opt/mbedtls \
@@ -134,8 +134,8 @@ ENV WOLFSSL_SOURCE_DIR=/opt/wolfssl-src
 # and cmsis_compiler.h that the implementation below includes. cmsis_os2.h is
 # pure declarations, so a test fake can stand in for it and the pack's unit
 # tests need nothing from this image; the BDD target needs the real thing.
-ARG CMSIS_TAG=v6.3.0
-ARG CMSIS_SHA=45dab712ad84f8cbbf2b7bfc089c19088507df6f
+ARG CMSIS_TAG=v6.4.0
+ARG CMSIS_SHA=af1b110e46a1720349f6f125e386e126767699bd
 RUN git clone --depth=1 --branch=${CMSIS_TAG} \
       https://github.com/ARM-software/CMSIS_6.git /opt/cmsis \
  && cd /opt/cmsis \
@@ -146,11 +146,13 @@ ENV CMSIS_PATH=/opt/cmsis
 # cmsis_os2.c over the kernel already at FREERTOS_KERNEL_PATH. It ships no
 # cmsis_os2.h of its own, which is why CMSIS_6 above is not optional.
 #
-# Pinned to v11.1.0 to match FreeRTOS-Kernel V11.1.0, not to the newest
-# release: the wrapper is written against a kernel version, so the two move
-# together or not at all. Bump both in one commit. No submodules.
-ARG CMSIS_FREERTOS_TAG=v11.1.0
-ARG CMSIS_FREERTOS_SHA=0bb666c1ff7430f5827e9469883b827df5b8fb06
+# Pinned to v11.3.0 to match the FreeRTOS-Kernel V11.3 line: the wrapper is
+# written against a kernel minor version, so the two move together or not at
+# all. The kernel takes that line's patch releases (V11.3.3 against a wrapper
+# built on V11.3.0); a new kernel minor waits for its wrapper. Bump both in
+# one commit. No submodules.
+ARG CMSIS_FREERTOS_TAG=v11.3.0
+ARG CMSIS_FREERTOS_SHA=4dd0035148cdc106f892877c27cba77d1de717d2
 RUN git clone --depth=1 --branch=${CMSIS_FREERTOS_TAG} \
       https://github.com/ARM-software/CMSIS-FreeRTOS.git /opt/cmsis-freertos \
  && cd /opt/cmsis-freertos \

@@ -22,7 +22,7 @@
   ],
   "packageRules": [
     {
-      "description": "A major is platform work, not a bump (SUPPORT.md in solid-syslog): it waits on the Dependency Dashboard until someone ticks it.",
+      "description": "A major is platform work, not a bump (SUPPORT.md in solid-syslog). It waits on the Dependency Dashboard until the decision is recorded here as a per-pin allowedVersions rule naming the epic, or ticked for a one-off.",
       "matchManagers": [
         "custom.regex"
       ],
@@ -48,6 +48,13 @@
         "WOLFSSL"
       ],
       "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Mbed TLS 4 is a second pack, not a bump: solid-syslog E49 (cososo-ltd/solid-syslog#1189). This pin serves the 3.6 LTS line.",
+      "matchDepNames": [
+        "MBEDTLS"
+      ],
+      "allowedVersions": "<4"
     }
   ]
 }

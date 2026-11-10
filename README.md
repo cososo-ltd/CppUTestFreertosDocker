@@ -80,7 +80,10 @@ Three kinds of update do not open a pull request. They are listed on the
 Dependency Dashboard issue instead, and open one only when ticked there:
 
 - A major version of anything. Under SolidSyslog's support statement a new
-  major is platform work, not a bump.
+  major is platform work, not a bump. A dashboard entry means no decision has
+  been recorded yet; once the epic exists, a per-pin `allowedVersions` rule
+  in `renovate.json` names it and the entry goes. Mbed TLS 4 is the first:
+  the pin serves the 3.6 LTS line, and a second pin would serve 4.x.
 - A FreeRTOS-Kernel or CMSIS-FreeRTOS minor. The wrapper is written against
   a kernel minor, so the two are approved together and the pins move in one
   commit; patches of either flow.
@@ -133,8 +136,10 @@ pinned to MIDDLE's just-published `sha-<short>` tag.
 
 ## Updating
 
-A Renovate pull request is the normal bump: review it, merge it, and the
-workflow rebuilds and republishes both images. A hand bump, for a pin
+A Renovate pull request is the normal bump: check the build, merge it, and
+the workflow rebuilds and republishes both images. CodeRabbit skips a Renovate
+pull request (`.coderabbit.yaml`); if one needed a hand-pushed change to
+build, ask for the review with a `@coderabbitai review` comment. A hand bump, for a pin
 Renovate cannot rank or holds for approval, edits the `*_TAG` and `*_SHA`
 ARGs in `dockerfile.host` together and goes the same way.
 

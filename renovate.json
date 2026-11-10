@@ -1,0 +1,52 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Bumps the upstream tag+SHA pins in dockerfile.host. Each pin carries a '# renovate:' comment naming its datasource, repository and versioning; see README.md.",
+  "enabledManagers": [
+    "custom.regex"
+  ],
+  "dependencyDashboard": true,
+  "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": null,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "A '# renovate:' comment followed by the ARG <NAME>_TAG (or _BRANCH) and ARG <NAME>_SHA pair it describes.",
+      "managerFilePatterns": [
+        "/^dockerfile\\.host$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) packageName=(?<packageName>\\S+)(?: versioning=(?<versioning>\\S+))?\\nARG (?<depName>\\w+)_(?:TAG|BRANCH)=(?<currentValue>\\S+)\\nARG \\w+_SHA=(?<currentDigest>[0-9a-f]{40})\\n"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "A major is platform work, not a bump (SUPPORT.md in solid-syslog): it waits on the Dependency Dashboard until someone ticks it.",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "The CMSIS-FreeRTOS wrapper is written against a kernel minor, so a kernel minor waits for its wrapper; patches flow.",
+      "matchDepNames": [
+        "FREERTOS_KERNEL"
+      ],
+      "matchUpdateTypes": [
+        "minor"
+      ],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "The wolfSSL sources must match the release the cpputest base image built its host libraries from, so this pin moves with the base image rather than on its own.",
+      "matchDepNames": [
+        "WOLFSSL"
+      ],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}

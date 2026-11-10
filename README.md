@@ -81,8 +81,9 @@ Dependency Dashboard issue instead, and open one only when ticked there:
 
 - A major version of anything. Under SolidSyslog's support statement a new
   major is platform work, not a bump.
-- A FreeRTOS-Kernel minor. CMSIS-FreeRTOS is written against a kernel minor,
-  so the kernel waits for its wrapper; kernel patches flow.
+- A FreeRTOS-Kernel or CMSIS-FreeRTOS minor. The wrapper is written against
+  a kernel minor, so the two are approved together and the pins move in one
+  commit; patches of either flow.
 - Any wolfSSL update. The sources here must match the release the `cpputest`
   base image built its host libraries from, so the pin moves with the base
   image rather than ahead of it.

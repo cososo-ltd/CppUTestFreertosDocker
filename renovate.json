@@ -32,9 +32,10 @@
       "dependencyDashboardApproval": true
     },
     {
-      "description": "The CMSIS-FreeRTOS wrapper is written against a kernel minor, so a kernel minor waits for its wrapper; patches flow.",
+      "description": "CMSIS-FreeRTOS is written against a kernel minor, so the two minors are approved together and the pins move in one commit; patches of either flow.",
       "matchDepNames": [
-        "FREERTOS_KERNEL"
+        "FREERTOS_KERNEL",
+        "CMSIS_FREERTOS"
       ],
       "matchUpdateTypes": [
         "minor"

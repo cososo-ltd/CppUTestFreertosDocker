@@ -52,9 +52,9 @@ ENV FREERTOS_PLUS_TCP_PATH=/opt/freertos/plus-tcp
 # (github.com/FreeRTOS/Lab-Project-FreeRTOS-FAT) — it ships no release tags, so
 # we pin the main-branch commit and SHA-gate it: a moved main fails the build
 # loudly, and Renovate opens the bump that moves the SHA. Switch to a release
-# tag if upstream ever publishes one. Ships alongside FatFs (ChaN): consumers pick per target — the
-# lwIP target uses FatFs, the Plus-TCP target uses Plus-FAT (SolidSyslog E29).
-# No submodules.
+# tag if upstream ever publishes one. Ships alongside FatFs (ChaN): consumers
+# pick per target — the lwIP target uses FatFs, the Plus-TCP target uses
+# Plus-FAT (SolidSyslog E29). No submodules.
 # renovate: datasource=git-refs packageName=https://github.com/FreeRTOS/Lab-Project-FreeRTOS-FAT.git
 ARG FREERTOS_PLUS_FAT_BRANCH=main
 ARG FREERTOS_PLUS_FAT_SHA=9ca465c3f2426c301b6b660286f3f964a2abdce5

@@ -20,7 +20,14 @@ RUN apt-get update \
 
 # Each upstream is pulled at a release tag (or commit SHA where no tag exists)
 # and SHA-gated so a moved tag fails the build loudly.
+#
+# The "# renovate:" comment above each pin is read by Renovate (renovate.json),
+# which opens a pull request moving the tag and the SHA together when upstream
+# releases. The comment names the datasource, the repository and, where the
+# tag shape is not plain semver, the versioning that ranks it. A new pin needs
+# the comment to be picked up; see README.md.
 
+# renovate: datasource=git-tags packageName=https://github.com/FreeRTOS/FreeRTOS-Kernel.git versioning=regex:^V(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$
 ARG FREERTOS_KERNEL_TAG=V11.3.3
 ARG FREERTOS_KERNEL_SHA=89592801dd8b73329a7583719b7e3567b50910e5
 RUN git clone --depth=1 --branch=${FREERTOS_KERNEL_TAG} \
@@ -30,6 +37,7 @@ RUN git clone --depth=1 --branch=${FREERTOS_KERNEL_TAG} \
  && git submodule update --init --recursive --depth=1
 ENV FREERTOS_KERNEL_PATH=/opt/freertos/kernel
 
+# renovate: datasource=git-tags packageName=https://github.com/FreeRTOS/FreeRTOS-Plus-TCP.git versioning=regex:^V(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$
 ARG FREERTOS_PLUS_TCP_TAG=V4.4.2
 ARG FREERTOS_PLUS_TCP_SHA=b86ad086e9870099bb0ac18a75dcb7f6dd508cc7
 RUN git clone --depth=1 --branch=${FREERTOS_PLUS_TCP_TAG} \
@@ -43,10 +51,11 @@ ENV FREERTOS_PLUS_TCP_PATH=/opt/freertos/plus-tcp
 # to coexist with FreeRTOS-Plus-TCP. A FreeRTOS *Labs* project
 # (github.com/FreeRTOS/Lab-Project-FreeRTOS-FAT) — it ships no release tags, so
 # we pin the main-branch commit and SHA-gate it: a moved main fails the build
-# loudly, prompting a deliberate bump. Switch to a release tag if upstream ever
-# publishes one. Ships alongside FatFs (ChaN): consumers pick per target — the
-# lwIP target uses FatFs, the Plus-TCP target uses Plus-FAT (SolidSyslog E29).
-# No submodules.
+# loudly, and Renovate opens the bump that moves the SHA. Switch to a release
+# tag if upstream ever publishes one. Ships alongside FatFs (ChaN): consumers
+# pick per target — the lwIP target uses FatFs, the Plus-TCP target uses
+# Plus-FAT (SolidSyslog E29). No submodules.
+# renovate: datasource=git-refs packageName=https://github.com/FreeRTOS/Lab-Project-FreeRTOS-FAT.git
 ARG FREERTOS_PLUS_FAT_BRANCH=main
 ARG FREERTOS_PLUS_FAT_SHA=9ca465c3f2426c301b6b660286f3f964a2abdce5
 RUN git init /opt/freertos/plus-fat \
@@ -63,6 +72,7 @@ ENV FREERTOS_PLUS_FAT_PATH=/opt/freertos/plus-fat
 # or RTOS without a dedicated IP task) which Plus-TCP does not, covering
 # embedded customers already on lwIP. Pulled from the GitHub mirror to match
 # the existing dockerfile pattern. No submodules.
+# renovate: datasource=git-tags packageName=https://github.com/lwip-tcpip/lwip.git versioning=regex:^STABLE-(?<major>\d+)_(?<minor>\d+)_(?<patch>\d+)_RELEASE$
 ARG LWIP_TAG=STABLE-2_2_1_RELEASE
 ARG LWIP_SHA=77dcd25a72509eb83f72b033d219b1d40cd8eb95
 RUN git clone --depth=1 --branch=${LWIP_TAG} \
@@ -76,7 +86,9 @@ ENV LWIP_PATH=/opt/lwip
 # FatFs as zip tarballs only — no upstream Git repo — so we pull from the
 # long-running community mirror github.com/abbrev/fatfs which faithfully
 # tags ChaN's official releases. SHA-gated so a retagged mirror fails the
-# build loudly. Bump the tag + SHA together when a new FatFs release lands.
+# build loudly. Renovate bumps R0.x releases; a lettered bugfix release such
+# as R0.15a has no numeric order it can rank, so that one is a hand bump.
+# renovate: datasource=git-tags packageName=https://github.com/abbrev/fatfs.git versioning=regex:^R(?<major>\d+)\.(?<minor>\d+)$
 ARG FATFS_TAG=R0.16
 ARG FATFS_SHA=30ca13c62615df0d2e9104ab41256985b96590c1
 RUN git clone --depth=1 --branch=${FATFS_TAG} \
@@ -91,6 +103,7 @@ ENV FATFS_PATH=/opt/fatfs
 # makes it the third File-role backend (SolidSyslog E36). Two dependency-free C
 # files with no submodules, so it also builds on the host for the integration
 # suite that proves lfs_file_sync actually commits.
+# renovate: datasource=git-tags packageName=https://github.com/littlefs-project/littlefs.git
 ARG LITTLEFS_TAG=v2.11.3
 ARG LITTLEFS_SHA=6cb4e86540eca0d9ba62500a298385c9d863c8be
 RUN git clone --depth=1 --branch=${LITTLEFS_TAG} \
@@ -99,6 +112,7 @@ RUN git clone --depth=1 --branch=${LITTLEFS_TAG} \
  && [ "$(git rev-parse HEAD)" = "${LITTLEFS_SHA}" ]
 ENV LITTLEFS_PATH=/opt/littlefs
 
+# renovate: datasource=git-tags packageName=https://github.com/Mbed-TLS/mbedtls.git
 ARG MBEDTLS_TAG=v3.6.7
 ARG MBEDTLS_SHA=068ff080b369adfac81509f9b57b2afabaf82dc5
 RUN git clone --depth=1 --branch=${MBEDTLS_TAG} \
@@ -118,6 +132,7 @@ ENV MBEDTLS_DIR=/opt/mbedtls
 # WOLFSSL_DIR as an installed build with include/ and lib/, and switches its
 # wolfSSL host tests on when it is set. The tag is annotated, so the SHA
 # checked is the commit it points at. No submodules.
+# renovate: datasource=git-tags packageName=https://github.com/wolfSSL/wolfssl.git versioning=regex:^v(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)-stable$
 ARG WOLFSSL_TAG=v5.9.4-stable
 ARG WOLFSSL_SHA=3c5eead44904df64e6a5a1f4ebdce377d35a849a
 RUN git clone --depth=1 --branch=${WOLFSSL_TAG} \
@@ -134,6 +149,7 @@ ENV WOLFSSL_SOURCE_DIR=/opt/wolfssl-src
 # and cmsis_compiler.h that the implementation below includes. cmsis_os2.h is
 # pure declarations, so a test fake can stand in for it and the pack's unit
 # tests need nothing from this image; the BDD target needs the real thing.
+# renovate: datasource=git-tags packageName=https://github.com/ARM-software/CMSIS_6.git
 ARG CMSIS_TAG=v6.4.0
 ARG CMSIS_SHA=af1b110e46a1720349f6f125e386e126767699bd
 RUN git clone --depth=1 --branch=${CMSIS_TAG} \
@@ -151,6 +167,7 @@ ENV CMSIS_PATH=/opt/cmsis
 # all. The kernel takes that line's patch releases (V11.3.3 against a wrapper
 # built on V11.3.0); a new kernel minor waits for its wrapper. Bump both in
 # one commit. No submodules.
+# renovate: datasource=git-tags packageName=https://github.com/ARM-software/CMSIS-FreeRTOS.git
 ARG CMSIS_FREERTOS_TAG=v11.3.0
 ARG CMSIS_FREERTOS_SHA=4dd0035148cdc106f892877c27cba77d1de717d2
 RUN git clone --depth=1 --branch=${CMSIS_FREERTOS_TAG} \

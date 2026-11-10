@@ -20,28 +20,77 @@ workflow wires this automatically (see `.github/workflows/docker-publish.yml`).
 
 ## Pinned upstream sources (MIDDLE)
 
-| Component | Repo | Ref | Commit SHA |
-|---|---|---|---|
-| FreeRTOS-Kernel | `FreeRTOS/FreeRTOS-Kernel` | tag `V11.3.3` | `89592801dd8b73329a7583719b7e3567b50910e5` |
-| FreeRTOS-Plus-TCP | `FreeRTOS/FreeRTOS-Plus-TCP` | tag `V4.4.2` | `b86ad086e9870099bb0ac18a75dcb7f6dd508cc7` |
-| FreeRTOS-Plus-FAT | `FreeRTOS/Lab-Project-FreeRTOS-FAT` | branch `main` (Labs project — no release tags) | `9ca465c3f2426c301b6b660286f3f964a2abdce5` |
-| lwIP | `lwip-tcpip/lwip` (GitHub mirror of <https://savannah.nongnu.org/projects/lwip/>) | tag `STABLE-2_2_1_RELEASE` | `77dcd25a72509eb83f72b033d219b1d40cd8eb95` |
-| FatFs (ChaN) | `abbrev/fatfs` (community Git mirror of <http://elm-chan.org/fsw/ff/>) | tag `R0.16` | `30ca13c62615df0d2e9104ab41256985b96590c1` |
-| Mbed TLS | `Mbed-TLS/mbedtls` | tag `v3.6.7` (LTS) | `068ff080b369adfac81509f9b57b2afabaf82dc5` |
-| wolfSSL (source only, nothing built) | `wolfSSL/wolfssl` | tag `v5.9.4-stable` | `3c5eead44904df64e6a5a1f4ebdce377d35a849a` |
-| LittleFS | `littlefs-project/littlefs` | tag `v2.11.3` | `6cb4e86540eca0d9ba62500a298385c9d863c8be` |
-| CMSIS_6 | `ARM-software/CMSIS_6` | tag `v6.4.0` | `af1b110e46a1720349f6f125e386e126767699bd` |
-| CMSIS-FreeRTOS | `ARM-software/CMSIS-FreeRTOS` | tag `v11.3.0` | `4dd0035148cdc106f892877c27cba77d1de717d2` |
+`dockerfile.host` is the record of what is pinned: each upstream has an
+`ARG <NAME>_TAG` (or `_BRANCH`) and `ARG <NAME>_SHA` pair, and the tag and
+commit are not repeated here, where they would only fall behind. The
+components, and where each comes from:
+
+| Component | Repo | Notes |
+|---|---|---|
+| FreeRTOS-Kernel | `FreeRTOS/FreeRTOS-Kernel` | release tag |
+| FreeRTOS-Plus-TCP | `FreeRTOS/FreeRTOS-Plus-TCP` | release tag |
+| FreeRTOS-Plus-FAT | `FreeRTOS/Lab-Project-FreeRTOS-FAT` | branch `main` at a pinned commit; a Labs project with no release tags |
+| lwIP | `lwip-tcpip/lwip` (GitHub mirror of <https://savannah.nongnu.org/projects/lwip/>) | `STABLE-x_y_z_RELEASE` tag |
+| FatFs (ChaN) | `abbrev/fatfs` (community Git mirror of <http://elm-chan.org/fsw/ff/>) | `R0.xx` tag |
+| Mbed TLS | `Mbed-TLS/mbedtls` | release tag, LTS line |
+| wolfSSL (source only, nothing built) | `wolfSSL/wolfssl` | `vx.y.z-stable` tag, matching the release the `cpputest` base image built its host libraries from |
+| LittleFS | `littlefs-project/littlefs` | release tag |
+| CMSIS_6 | `ARM-software/CMSIS_6` | release tag |
+| CMSIS-FreeRTOS | `ARM-software/CMSIS-FreeRTOS` | release tag, on the same kernel minor as FreeRTOS-Kernel |
 
 FatFs is distributed by ChaN as zip tarballs only — there is no upstream Git
 repo. We pull from the long-running community mirror `github.com/abbrev/fatfs`
-which faithfully tags ChaN's official releases (R0.10 through R0.16 at the
-time of writing). The SHA gate ensures a retagged mirror fails the build
-loudly. Bump tag and SHA together when a new FatFs release lands.
+which faithfully tags ChaN's official releases. The SHA gate ensures a
+retagged mirror fails the build loudly.
 
 Each `RUN git clone ...` is followed by a SHA gate (`[ "$(git rev-parse HEAD)" = "..." ]`)
 so a moved upstream tag fails the build loudly rather than silently picking up
 new code.
+
+## Keeping the pins current
+
+[Renovate](https://docs.renovatebot.com/), installed on the organisation as
+the Mend GitHub App, opens a pull request when an upstream publishes a patch
+or minor release, moving the tag and the SHA together. The publishing workflow
+builds the image on that pull request, so a release that no longer clones or
+gates cleanly fails there. `renovate.json` holds the configuration.
+
+Renovate finds a pin by the `# renovate:` comment immediately above its pair:
+
+```dockerfile
+# renovate: datasource=git-tags packageName=https://github.com/Mbed-TLS/mbedtls.git
+ARG MBEDTLS_TAG=v3.6.7
+ARG MBEDTLS_SHA=068ff080b369adfac81509f9b57b2afabaf82dc5
+```
+
+A pin without the comment is invisible to it, so a new upstream needs one.
+The comment carries:
+
+- `datasource`: `git-tags` for a pin on a release tag, `git-refs` for the
+  Plus-FAT branch, whose updates move only the SHA. Both resolve an annotated
+  tag to the commit it points at, which is the hash the `git rev-parse HEAD`
+  gate compares.
+- `packageName`: the clone URL.
+- `versioning`, where the tag is not plain semver. Renovate's default reads a
+  capital `V` prefix or a `-stable` suffix as a pre-release and then offers
+  no updates at all, so FreeRTOS, wolfSSL, lwIP and FatFs each name a regex
+  that ranks their own tag shape.
+
+Three kinds of update do not open a pull request. They are listed on the
+Dependency Dashboard issue instead, and open one only when ticked there:
+
+- A major version of anything. Under SolidSyslog's support statement a new
+  major is platform work, not a bump.
+- A FreeRTOS-Kernel or CMSIS-FreeRTOS minor. The wrapper is written against
+  a kernel minor, so the two are approved together and the pins move in one
+  commit; patches of either flow.
+- Any wolfSSL update. The sources here must match the release the `cpputest`
+  base image built its host libraries from, so the pin moves with the base
+  image rather than ahead of it.
+
+One release shape cannot be ranked: a lettered FatFs bugfix such as `R0.15a`
+has no numeric order Renovate can compare. `R0.16` to `R0.17` is found; an
+`R0.16a` is a hand bump.
 
 ## Usage
 
@@ -84,13 +133,14 @@ pinned to MIDDLE's just-published `sha-<short>` tag.
 
 ## Updating
 
-When bumping any upstream version:
+A Renovate pull request is the normal bump: review it, merge it, and the
+workflow rebuilds and republishes both images. A hand bump, for a pin
+Renovate cannot rank or holds for approval, edits the `*_TAG` and `*_SHA`
+ARGs in `dockerfile.host` together and goes the same way.
 
-1. Edit the relevant `*_TAG` and `*_SHA` ARGs in `dockerfile.host`.
-2. Push to `main` — the workflow rebuilds and republishes both images.
-3. Update the SHA tag in
-   [solid-syslog `docs/containers.md`](https://github.com/DavidCozens/solid-syslog/blob/main/docs/containers.md)
-   and the files it lists under "Files to update".
+After either, update the SHA tag in
+[solid-syslog `docs/containers.md`](https://github.com/cososo-ltd/solid-syslog/blob/main/docs/containers.md)
+and the files it lists under "Files to update".
 
 When the parent CppUTestDocker image moves on, also bump the `FROM` line in
 `dockerfile.host`.

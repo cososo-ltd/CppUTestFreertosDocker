@@ -1,8 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Bumps the upstream tag+SHA pins in dockerfile.host. Each pin carries a '# renovate:' comment naming its datasource, repository and versioning; see README.md.",
+  "description": "Bumps the upstream tag+SHA pins in dockerfile.host, and the digest its FROM line pins the cpputest base at. Each upstream pin carries a '# renovate:' comment naming its datasource, repository and versioning; see README.md.",
   "enabledManagers": [
-    "custom.regex"
+    "custom.regex",
+    "dockerfile"
   ],
   "dependencyDashboard": true,
   "semanticCommits": "enabled",
@@ -55,6 +56,24 @@
         "MBEDTLS"
       ],
       "allowedVersions": "<4"
+    },
+    {
+      "description": "The cpputest base is named by its latest tag and pinned by digest, so a publish there is a digest update here; merging it rebuilds both images on the new base.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchDepNames": [
+        "ghcr.io/cososo-ltd/cpputest"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "commitMessageTopic": "the cpputest base"
     }
-  ]
+  ],
+  "dockerfile": {
+    "managerFilePatterns": [
+      "/^dockerfile\\.host$/"
+    ]
+  }
 }

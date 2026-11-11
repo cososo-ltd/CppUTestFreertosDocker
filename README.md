@@ -12,7 +12,7 @@ host-side TDD of `Platform/FreeRtos/` adapters and for cross-building
 
 | Image | Built from | Adds | Use |
 |---|---|---|---|
-| `ghcr.io/cososo-ltd/cpputest-freertos` (MIDDLE) | `cpputest@sha-d5d2af8` | FreeRTOS-Kernel, Plus-TCP, Plus-FAT, lwIP, FatFs, LittleFS, Mbed TLS, wolfSSL, CMSIS_6 and CMSIS-FreeRTOS sources at `/opt/...` + `FREERTOS_*_PATH` / `LWIP_PATH` / `FATFS_PATH` / `LITTLEFS_PATH` / `MBEDTLS_DIR` / `WOLFSSL_SOURCE_DIR` / `CMSIS_PATH` / `CMSIS_FREERTOS_PATH` env vars | Host-TDD of FreeRTOS and CMSIS-RTOS2 adapters against fakes |
+| `ghcr.io/cososo-ltd/cpputest-freertos` (MIDDLE) | `cpputest:latest`, pinned by digest | FreeRTOS-Kernel, Plus-TCP, Plus-FAT, lwIP, FatFs, LittleFS, Mbed TLS, wolfSSL, CMSIS_6 and CMSIS-FreeRTOS sources at `/opt/...` + `FREERTOS_*_PATH` / `LWIP_PATH` / `FATFS_PATH` / `LITTLEFS_PATH` / `MBEDTLS_DIR` / `WOLFSSL_SOURCE_DIR` / `CMSIS_PATH` / `CMSIS_FREERTOS_PATH` env vars | Host-TDD of FreeRTOS and CMSIS-RTOS2 adapters against fakes |
 | `ghcr.io/davidcozens/cpputest-freertos-cross` (TOP) | `cpputest-freertos:sha-<same>` | `gcc-arm-none-eabi`, `gdb-multiarch` (aliased as `arm-none-eabi-gdb`), `qemu-system-arm`, `python3` + `behave==1.3.3` | Cross builds, on-QEMU runs, GDB attach, BDD scenarios that drive a QEMU target |
 
 The TOP image FROMs the MIDDLE image at the same SHA tag; the publishing
@@ -62,6 +62,11 @@ Renovate finds a pin by the `# renovate:` comment immediately above its pair:
 ARG MBEDTLS_TAG=v3.6.7
 ARG MBEDTLS_SHA=068ff080b369adfac81509f9b57b2afabaf82dc5
 ```
+
+The `cpputest` base is a pin of the same kind with no comment: `dockerfile.host`
+names it as `cpputest:latest` and pins the digest, and Renovate's Dockerfile
+manager opens the digest bump when `cpputest` publishes. Merging it rebuilds
+both images on the new base, which is how a change there reaches them.
 
 A pin without the comment is invisible to it, so a new upstream needs one.
 The comment carries:
@@ -115,7 +120,7 @@ Available tags appear on the package pages:
 
 ## Building locally
 
-The MIDDLE image FROMs `cpputest:sha-2c7b76b` directly:
+The MIDDLE image FROMs `cpputest:latest` at a pinned digest directly:
 
 ```bash
 docker build -f dockerfile.host -t cpputest-freertos:local .
@@ -133,6 +138,14 @@ docker build -f dockerfile.cross --build-arg BASE_TAG=local \
 GitHub Actions publishes both images to the GitHub Container Registry on each
 push to `main`. The workflow runs MIDDLE first, then TOP with `BASE_TAG`
 pinned to MIDDLE's just-published `sha-<short>` tag.
+
+Once both are pushed, the workflow sends an `image-published` event to
+[solid-syslog](https://github.com/cososo-ltd/solid-syslog), whose Image Bump
+workflow opens the pull request that moves every reference to both images onto
+the new digests and runs CI on it. The event is sent with a token minted from
+the release GitHub App for solid-syslog, from the `RELEASE_PLEASE_APP_ID` and
+`RELEASE_PLEASE_PRIVATE_KEY` organisation secrets; the App itself is not
+installed here.
 
 ## Updating
 

@@ -8,7 +8,9 @@
 #
 # No cross compiler. See dockerfile.cross for the target-build variant.
 
-FROM ghcr.io/cososo-ltd/cpputest:sha-d5d2af8
+# Renovate moves the digest when cpputest publishes (renovate.json); the tag is the
+# line it follows, and never what is pulled.
+FROM ghcr.io/cososo-ltd/cpputest:latest@sha256:491af982704182c71e15d1a919e9599600f0f925beafebae986174146776f46d
 LABEL Description="CppUTest base + FreeRTOS / CMSIS-RTOS2 / FatFs / LittleFS / Mbed TLS / wolfSSL sources for host-side TDD"
 
 USER root

@@ -23,6 +23,21 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
+      # Built into the runner's Docker first, so the smoke runs against the
+      # image on every pull request; the push below rebuilds from the cache.
+      - name: Build host image for the smoke
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: dockerfile.host
+          load: true
+          tags: cpputest-freertos:smoke
+          cache-from: type=gha,scope=host
+          cache-to: type=gha,scope=host,mode=max
+
+      - name: Smoke host image
+        run: docker run --rm -v "$PWD:/smoke:ro" cpputest-freertos:smoke /smoke/smoke/host/smoke.sh /smoke/dockerfile.host
+
       - name: Log in to GHCR
         if: github.event_name == 'push'
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
@@ -40,20 +55,23 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-
 
-      - name: Build and push host image
+      - name: Push host image
+        if: github.event_name == 'push'
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: dockerfile.host
-          push: ${{ github.event_name == 'push' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=host
 
+  # Runs on pull requests too, so the cross image is smoked before anything is
+  # published. Its FROM names the host image by tag, and on a pull request that
+  # tag is not in the registry, so the host image is rebuilt here from the
+  # cache into an OCI layout and handed to the cross build in its place.
   cross:
     needs: host
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
@@ -63,16 +81,43 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
+      - name: Compute short SHA tag
+        id: vars
+        run: echo "short_sha=sha-$(echo "$GITHUB_SHA" | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+      - name: Rebuild host image as the cross base
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: dockerfile.host
+          outputs: type=oci,dest=${{ runner.temp }}/host,tar=false
+          tags: cpputest-freertos:base
+          cache-from: type=gha,scope=host
+
+      - name: Build cross image for the smoke
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: dockerfile.cross
+          load: true
+          build-args: |
+            BASE_TAG=${{ steps.vars.outputs.short_sha }}
+          build-contexts: |
+            ghcr.io/${{ github.repository_owner }}/cpputest-freertos:${{ steps.vars.outputs.short_sha }}=oci-layout://${{ runner.temp }}/host:base
+          tags: cpputest-freertos-cross:smoke
+          cache-from: type=gha,scope=cross
+          cache-to: type=gha,scope=cross,mode=max
+
+      - name: Smoke cross image
+        run: docker run --rm -v "$PWD:/smoke:ro" cpputest-freertos-cross:smoke /smoke/smoke/cross/smoke.sh /smoke/dockerfile.cross
+
       - name: Log in to GHCR
+        if: github.event_name == 'push'
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Compute short SHA tag
-        id: vars
-        run: echo "short_sha=sha-$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
 
       - name: Extract metadata
         id: meta
@@ -83,7 +128,8 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-
 
-      - name: Build and push cross image
+      - name: Push cross image
+        if: github.event_name == 'push'
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
@@ -91,10 +137,11 @@ jobs:
           push: true
           build-args: |
             BASE_TAG=${{ steps.vars.outputs.short_sha }}
+          build-contexts: |
+            ghcr.io/${{ github.repository_owner }}/cpputest-freertos:${{ steps.vars.outputs.short_sha }}=oci-layout://${{ runner.temp }}/host:base
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=cross
 
   # Tells solid-syslog both images are published, so its Image Bump workflow
   # opens the pull request that moves every reference onto the new digests and
@@ -103,6 +150,7 @@ jobs:
   # App's ID and key.
   notify:
     needs: cross
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0

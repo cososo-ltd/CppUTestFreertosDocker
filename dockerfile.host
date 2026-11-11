@@ -8,7 +8,9 @@
 #
 # No cross compiler. See dockerfile.cross for the target-build variant.
 
-FROM ghcr.io/cososo-ltd/cpputest:sha-d5d2af8
+# Renovate moves the digest when cpputest publishes (renovate.json); the tag is the
+# line it follows, and never what is pulled.
+FROM ghcr.io/cososo-ltd/cpputest:latest@sha256:491af982704182c71e15d1a919e9599600f0f925beafebae986174146776f46d
 LABEL Description="CppUTest base + FreeRTOS / CMSIS-RTOS2 / FatFs / LittleFS / Mbed TLS / wolfSSL sources for host-side TDD"
 
 USER root
@@ -126,7 +128,10 @@ ENV MBEDTLS_DIR=/opt/mbedtls
 # compiles wolfSSL into their own image under a user_settings.h, and the
 # SolidSyslog CMSIS-RTOS2 BDD target does the same (SolidSyslog E34), so what
 # it needs from here is the sources at the release the gcc base image builds
-# its two host libraries from. Bump the two together.
+# its two host libraries from. Bump the two together: the gate below compares
+# the source's version header with the one the base installed, so a base moved
+# by Renovate onto a different wolfSSL release fails here rather than publishing
+# a source tree that does not match the libraries beside it.
 #
 # The variable is WOLFSSL_SOURCE_DIR, not WOLFSSL_DIR: SolidSyslog reads
 # WOLFSSL_DIR as an installed build with include/ and lib/, and switches its
@@ -138,7 +143,10 @@ ARG WOLFSSL_SHA=3c5eead44904df64e6a5a1f4ebdce377d35a849a
 RUN git clone --depth=1 --branch=${WOLFSSL_TAG} \
       https://github.com/wolfSSL/wolfssl.git /opt/wolfssl-src \
  && cd /opt/wolfssl-src \
- && [ "$(git rev-parse HEAD)" = "${WOLFSSL_SHA}" ]
+ && [ "$(git rev-parse HEAD)" = "${WOLFSSL_SHA}" ] \
+ && src="$(grep LIBWOLFSSL_VERSION_STRING wolfssl/version.h)" \
+ && lib="$(grep LIBWOLFSSL_VERSION_STRING "${WOLFSSL_DIR}/include/wolfssl/version.h")" \
+ && [ "${src}" = "${lib}" ]
 ENV WOLFSSL_SOURCE_DIR=/opt/wolfssl-src
 
 

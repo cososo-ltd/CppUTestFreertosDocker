@@ -94,7 +94,9 @@ Dependency Dashboard issue instead, and open one only when ticked there:
   commit; patches of either flow.
 - Any wolfSSL update. The sources here must match the release the `cpputest`
   base image built its host libraries from, so the pin moves with the base
-  image rather than ahead of it.
+  image rather than ahead of it. `dockerfile.host` compares the two version
+  headers, so a base bump onto a different wolfSSL release fails the build
+  until the source pin follows.
 
 One release shape cannot be ranked: a lettered FatFs bugfix such as `R0.15a`
 has no numeric order Renovate can compare. `R0.16` to `R0.17` is found; an

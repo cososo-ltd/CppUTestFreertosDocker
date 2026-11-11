@@ -10,7 +10,7 @@
 
 # Renovate moves the digest when cpputest publishes (renovate.json); the tag is the
 # line it follows, and never what is pulled.
-FROM ghcr.io/cososo-ltd/cpputest:latest@sha256:491af982704182c71e15d1a919e9599600f0f925beafebae986174146776f46d
+FROM ghcr.io/cososo-ltd/cpputest:latest@sha256:7d8e56def41710d6ec8703c3f9f1b0bc4ef6bd9e22d17a63fa97f7247e548d5c
 LABEL Description="CppUTest base + FreeRTOS / CMSIS-RTOS2 / FatFs / LittleFS / Mbed TLS / wolfSSL sources for host-side TDD"
 
 USER root

@@ -1,11 +1,17 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Bumps the upstream tag+SHA pins in dockerfile.host, and the digest its FROM line pins the cpputest base at. Each upstream pin carries a '# renovate:' comment naming its datasource, repository and versioning; see README.md.",
+  "description": "Bumps the upstream tag+SHA pins in dockerfile.host, the digest its FROM line pins the cpputest base at, and the SHA-pinned actions in the publish workflow. Each upstream pin carries a '# renovate:' comment naming its datasource, repository and versioning. A green pull request merges itself; see README.md.",
   "enabledManagers": [
     "custom.regex",
-    "dockerfile"
+    "dockerfile",
+    "github-actions"
   ],
   "dependencyDashboard": true,
+  "automerge": true,
+  "automergeType": "pr",
+  "assignees": [
+    "DavidCozens"
+  ],
   "semanticCommits": "enabled",
   "semanticCommitType": "chore",
   "semanticCommitScope": null,
@@ -69,6 +75,13 @@
         "digest"
       ],
       "commitMessageTopic": "the cpputest base"
+    },
+    {
+      "description": "A major never merges itself. An upstream major is platform work (SUPPORT.md in solid-syslog), and a GitHub Action's major is where its inputs change, which a pull request cannot exercise for the login, push and notify steps that run only on main. Renovate assigns the pull request to the maintainer when it opens.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": false
     }
   ],
   "dockerfile": {

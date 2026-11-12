@@ -13,7 +13,7 @@ host-side TDD of `Platform/FreeRtos/` adapters and for cross-building
 | Image | Built from | Adds | Use |
 |---|---|---|---|
 | `ghcr.io/cososo-ltd/cpputest-freertos` (MIDDLE) | `cpputest:latest`, pinned by digest | FreeRTOS-Kernel, Plus-TCP, Plus-FAT, lwIP, FatFs, LittleFS, Mbed TLS, wolfSSL, CMSIS_6 and CMSIS-FreeRTOS sources at `/opt/...` + `FREERTOS_*_PATH` / `LWIP_PATH` / `FATFS_PATH` / `LITTLEFS_PATH` / `MBEDTLS_DIR` / `WOLFSSL_SOURCE_DIR` / `CMSIS_PATH` / `CMSIS_FREERTOS_PATH` env vars | Host-TDD of FreeRTOS and CMSIS-RTOS2 adapters against fakes |
-| `ghcr.io/davidcozens/cpputest-freertos-cross` (TOP) | `cpputest-freertos:sha-<same>` | `gcc-arm-none-eabi`, `gdb-multiarch` (aliased as `arm-none-eabi-gdb`), `qemu-system-arm`, `python3` + `behave==1.3.3` | Cross builds, on-QEMU runs, GDB attach, BDD scenarios that drive a QEMU target |
+| `ghcr.io/cososo-ltd/cpputest-freertos-cross` (TOP) | `cpputest-freertos:sha-<same>` | `gcc-arm-none-eabi`, `gdb-multiarch` (aliased as `arm-none-eabi-gdb`), `qemu-system-arm`, `python3` + `behave==1.3.3` | Cross builds, on-QEMU runs, GDB attach, BDD scenarios that drive a QEMU target |
 
 The TOP image FROMs the MIDDLE image at the same SHA tag; the publishing
 workflow wires this automatically (see `.github/workflows/docker-publish.yml`).
@@ -52,8 +52,9 @@ new code.
 [Renovate](https://docs.renovatebot.com/), installed on the organisation as
 the Mend GitHub App, opens a pull request when an upstream publishes a patch
 or minor release, moving the tag and the SHA together. The publishing workflow
-builds the image on that pull request, so a release that no longer clones or
-gates cleanly fails there. `renovate.json` holds the configuration.
+builds both images on that pull request and smokes them (see below), so a
+release that no longer clones, gates or compiles fails there. `renovate.json`
+holds the configuration.
 
 Renovate finds a pin by the `# renovate:` comment immediately above its pair:
 
@@ -102,23 +103,55 @@ One release shape cannot be ranked: a lettered FatFs bugfix such as `R0.15a`
 has no numeric order Renovate can compare. `R0.16` to `R0.17` is found; an
 `R0.16a` is a hand bump.
 
+## The smoke
+
+The publishing workflow builds each image into the runner's Docker and runs
+its smoke inside it before anything is pushed, on pull requests and on `main`
+alike. A smoke checks what a bump can change, not any project built on the
+image.
+
+`smoke/host/smoke.sh`, against MIDDLE:
+
+- each upstream is where its environment variable points, and one translation
+  unit compiles against it with the image's gcc, under the minimal
+  configuration headers in `smoke/host/config/`;
+- where the upstream's header carries a version, it is the release the
+  `dockerfile.host` tag names: FreeRTOS-Kernel, lwIP, Mbed TLS (header and
+  library), the wolfSSL sources, and LittleFS to major and minor, which is all
+  its header holds.
+
+The other trees are checked by the compile alone. The FreeRTOS-Plus-TCP header
+lags its tag (`V4.4.1` at `V4.4.2`); FreeRTOS-Plus-FAT, FatFs, CMSIS_6 and
+CMSIS-FreeRTOS carry no version that matches the tag. For all of them the SHA
+gate in `dockerfile.host` is what proves the tree is the release.
+
+`smoke/cross/smoke.sh`, against TOP:
+
+- `arm-none-eabi-gcc` compiles the kernel, its Cortex-M3 port and the
+  CMSIS-FreeRTOS wrapper over it, under `smoke/cross/config/`;
+- `arm-none-eabi-gdb` and `qemu-system-arm` answer;
+- Behave is the release `dockerfile.cross` pins.
+
+Whether a project still compiles against a new release is that project's own
+CI's question, asked by the bump pull request the publish sends it.
+
 ## Usage
 
 ```bash
-docker pull ghcr.io/davidcozens/cpputest-freertos:latest         # MIDDLE
-docker pull ghcr.io/davidcozens/cpputest-freertos-cross:latest   # TOP
+docker pull ghcr.io/cososo-ltd/cpputest-freertos:latest         # MIDDLE
+docker pull ghcr.io/cososo-ltd/cpputest-freertos-cross:latest   # TOP
 ```
 
 Prefer SHA tags for reproducibility:
 
 ```bash
-docker pull ghcr.io/davidcozens/cpputest-freertos:sha-<commit>
-docker pull ghcr.io/davidcozens/cpputest-freertos-cross:sha-<commit>
+docker pull ghcr.io/cososo-ltd/cpputest-freertos:sha-<commit>
+docker pull ghcr.io/cososo-ltd/cpputest-freertos-cross:sha-<commit>
 ```
 
 Available tags appear on the package pages:
-- [cpputest-freertos](https://github.com/davidcozens/CppUTestFreertosDocker/pkgs/container/cpputest-freertos)
-- [cpputest-freertos-cross](https://github.com/davidcozens/CppUTestFreertosDocker/pkgs/container/cpputest-freertos-cross)
+- [cpputest-freertos](https://github.com/cososo-ltd/CppUTestFreertosDocker/pkgs/container/cpputest-freertos)
+- [cpputest-freertos-cross](https://github.com/cososo-ltd/CppUTestFreertosDocker/pkgs/container/cpputest-freertos-cross)
 
 ## Building locally
 
@@ -139,7 +172,10 @@ docker build -f dockerfile.cross --build-arg BASE_TAG=local \
 
 GitHub Actions publishes both images to the GitHub Container Registry on each
 push to `main`. The workflow runs MIDDLE first, then TOP with `BASE_TAG`
-pinned to MIDDLE's just-published `sha-<short>` tag.
+pinned to MIDDLE's just-published `sha-<short>` tag. TOP is built on pull
+requests too, for its smoke: there MIDDLE's tag is not yet in the registry, so
+the TOP job rebuilds MIDDLE from the cache into an OCI layout and builds on
+that, and does the same on `main` so the base it smokes is the base it pushes.
 
 Once both are pushed, the workflow sends an `image-published` event to
 [solid-syslog](https://github.com/cososo-ltd/solid-syslog), whose Image Bump
@@ -152,15 +188,12 @@ installed here.
 ## Updating
 
 A Renovate pull request is the normal bump: check the build, merge it, and
-the workflow rebuilds and republishes both images. CodeRabbit skips a Renovate
-pull request (`.coderabbit.yaml`); if one needed a hand-pushed change to
-build, ask for the review with a `@coderabbitai review` comment. A hand bump, for a pin
-Renovate cannot rank or holds for approval, edits the `*_TAG` and `*_SHA`
-ARGs in `dockerfile.host` together and goes the same way.
+the workflow rebuilds and republishes both images, then solid-syslog's Image
+Bump workflow opens the pull request that moves its references. CodeRabbit
+skips a Renovate pull request (`.coderabbit.yaml`); if one needed a hand-pushed
+change to build, ask for the review with a `@coderabbitai review` comment. A
+hand bump, for a pin Renovate cannot rank or holds for approval, edits the
+`*_TAG` and `*_SHA` ARGs in `dockerfile.host` together and goes the same way.
 
-After either, update the SHA tag in
-[solid-syslog `docs/containers.md`](https://github.com/cososo-ltd/solid-syslog/blob/main/docs/containers.md)
-and the files it lists under "Files to update".
-
-When the parent CppUTestDocker image moves on, also bump the `FROM` line in
-`dockerfile.host`.
+When the parent cpputest image publishes, Renovate moves the digest on the
+`FROM` line of `dockerfile.host` the same way.

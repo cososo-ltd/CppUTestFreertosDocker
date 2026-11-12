@@ -51,7 +51,9 @@ new code.
 
 [Renovate](https://docs.renovatebot.com/), installed on the organisation as
 the Mend GitHub App, opens a pull request when an upstream publishes a patch
-or minor release, moving the tag and the SHA together. The publishing workflow
+or minor release, moving the tag and the SHA together. It does the same for
+the digest the `FROM` line of `dockerfile.host` pins the cpputest base at, and
+for the SHA-pinned actions in the publishing workflow. The publishing workflow
 builds both images on that pull request and smokes them (see below), so a
 release that no longer clones, gates or compiles fails there. `renovate.json`
 holds the configuration.
@@ -102,6 +104,29 @@ Dependency Dashboard issue instead, and open one only when ticked there:
 One release shape cannot be ranked: a lettered FatFs bugfix such as `R0.15a`
 has no numeric order Renovate can compare. `R0.16` to `R0.17` is found; an
 `R0.16a` is a hand bump.
+
+## What merges itself
+
+A Renovate pull request whose `host` and `cross` checks pass, smokes included,
+merges itself: `renovate.json` sets `automerge`, and branch protection on
+`main` requires both checks, so GitHub's auto-merge waits for them. The
+publish that follows sends solid-syslog its bump pull request, and that one is
+merged by hand there. A cpputest publish therefore reaches solid-syslog
+through here with nobody acting: Renovate moves the base digest, the pull
+request merges itself, and both images republish.
+
+Two kinds of pull request come to the maintainer instead, by assignment, which
+is a GitHub notification:
+
+- one whose checks fail - Renovate assigns an automerge pull request only then;
+- a major of anything, which never merges itself. An upstream major is
+  platform work, and a GitHub Action's major is where its inputs change, which
+  a pull request cannot exercise for the login, push and notify steps that run
+  only on `main`.
+
+The pins held for Dependency Dashboard approval - the FreeRTOS-Kernel and
+CMSIS-FreeRTOS minors, and wolfSSL - open a pull request only when ticked, and
+it then merges itself like any other once green.
 
 ## The smoke
 
@@ -187,13 +212,9 @@ installed here.
 
 ## Updating
 
-A Renovate pull request is the normal bump: check the build, merge it, and
-the workflow rebuilds and republishes both images, then solid-syslog's Image
-Bump workflow opens the pull request that moves its references. CodeRabbit
-skips a Renovate pull request (`.coderabbit.yaml`); if one needed a hand-pushed
-change to build, ask for the review with a `@coderabbitai review` comment. A
-hand bump, for a pin Renovate cannot rank or holds for approval, edits the
-`*_TAG` and `*_SHA` ARGs in `dockerfile.host` together and goes the same way.
-
-When the parent cpputest image publishes, Renovate moves the digest on the
-`FROM` line of `dockerfile.host` the same way.
+A bump normally needs nothing: see "What merges itself" above. CodeRabbit
+skips a Renovate pull request (`.coderabbit.yaml`); if one needed a
+hand-pushed change to build, ask for the review with a `@coderabbitai review`
+comment. A hand bump, for a pin Renovate cannot rank, edits the `*_TAG` and
+`*_SHA` ARGs in `dockerfile.host` together and goes through a pull request in
+the same way.

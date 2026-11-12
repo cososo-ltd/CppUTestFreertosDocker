@@ -13,7 +13,7 @@ host-side TDD of `Platform/FreeRtos/` adapters and for cross-building
 | Image | Built from | Adds | Use |
 |---|---|---|---|
 | `ghcr.io/cososo-ltd/cpputest-freertos` (MIDDLE) | `cpputest:latest`, pinned by digest | FreeRTOS-Kernel, Plus-TCP, Plus-FAT, lwIP, FatFs, LittleFS, Mbed TLS, wolfSSL, CMSIS_6 and CMSIS-FreeRTOS sources at `/opt/...` + `FREERTOS_*_PATH` / `LWIP_PATH` / `FATFS_PATH` / `LITTLEFS_PATH` / `MBEDTLS_DIR` / `WOLFSSL_SOURCE_DIR` / `CMSIS_PATH` / `CMSIS_FREERTOS_PATH` env vars | Host-TDD of FreeRTOS and CMSIS-RTOS2 adapters against fakes |
-| `ghcr.io/cososo-ltd/cpputest-freertos-cross` (TOP) | `cpputest-freertos:sha-<same>` | `gcc-arm-none-eabi`, `gdb-multiarch` (aliased as `arm-none-eabi-gdb`), `qemu-system-arm`, `python3` + `behave==1.3.3` | Cross builds, on-QEMU runs, GDB attach, BDD scenarios that drive a QEMU target |
+| `ghcr.io/cososo-ltd/cpputest-freertos-cross` (TOP) | `cpputest-freertos:sha-<same>` | `gcc-arm-none-eabi`, `gdb-multiarch` (aliased as `arm-none-eabi-gdb`), `qemu-system-arm`, `python3` + `behave==1.3.3`, and ST's STM32F7 HAL driver and CMSIS device sources at `/opt/stm32/...` + `STM32F7_HAL_DRIVER_PATH` / `STM32F7_CMSIS_DEVICE_PATH` env vars | Cross builds, on-QEMU runs, GDB attach, BDD scenarios that drive a QEMU target, and firmware for an STM32F7 board |
 
 The TOP image FROMs the MIDDLE image at the same SHA tag; the publishing
 workflow wires this automatically (see `.github/workflows/docker-publish.yml`).
@@ -42,6 +42,16 @@ FatFs is distributed by ChaN as zip tarballs only — there is no upstream Git
 repo. We pull from the long-running community mirror `github.com/abbrev/fatfs`
 which faithfully tags ChaN's official releases. The SHA gate ensures a
 retagged mirror fails the build loudly.
+
+## Pinned upstream sources (TOP)
+
+Two trees are pinned in `dockerfile.cross` instead, in the same way, because
+nothing compiles them for a host:
+
+| Component | Repo | Notes |
+|---|---|---|
+| STM32F7 HAL driver | `STMicroelectronics/stm32f7xx_hal_driver` | release tag |
+| STM32F7 CMSIS device files | `STMicroelectronics/cmsis_device_f7` | release tag; includes the CMSIS core headers from CMSIS_6 |
 
 Each `RUN git clone ...` is followed by a SHA gate (`[ "$(git rev-parse HEAD)" = "..." ]`)
 so a moved upstream tag fails the build loudly rather than silently picking up
@@ -159,6 +169,11 @@ gate in `dockerfile.host` is what proves the tree is the release.
 
 - `arm-none-eabi-gcc` compiles the kernel, its Cortex-M3 port and the
   CMSIS-FreeRTOS wrapper over it, under `smoke/cross/config/`;
+- each ST tree is the release its `dockerfile.cross` tag names, read from the
+  version ST writes into its source, and the HAL, the device's system file and
+  the STM32F767 startup code compile for a hard-float Cortex-M7;
+- a program links for that core, which the compile alone would not show: it
+  needs the hard-float newlib from the toolchain packages;
 - `arm-none-eabi-gdb` and `qemu-system-arm` answer;
 - Behave is the release `dockerfile.cross` pins.
 
@@ -221,5 +236,5 @@ A bump normally needs nothing: see "What merges itself" above. CodeRabbit
 skips a Renovate pull request (`.coderabbit.yaml`); if one needed a
 hand-pushed change to build, ask for the review with a `@coderabbitai review`
 comment. A hand bump, for a pin Renovate cannot rank, edits the `*_TAG` and
-`*_SHA` ARGs in `dockerfile.host` together and goes through a pull request in
-the same way.
+`*_SHA` ARGs together, in whichever dockerfile holds the pin, and goes through
+a pull request in the same way.

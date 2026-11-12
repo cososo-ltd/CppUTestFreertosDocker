@@ -34,5 +34,34 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # scenarios in SolidSyslog S08.03 slice 5).
 RUN pip install --no-cache-dir --break-system-packages behave==1.3.3
 
+# ST's trees for the STM32F7, which SolidSyslog's NUCLEO-F767ZI board support
+# builds against (SolidSyslog E50). They sit in this layer, not the host one:
+# nothing compiles them for a host, so only a cross build reads them.
+#
+# The HAL driver is ST's peripheral library. It ships a configuration template
+# and no configuration, so a project supplies its own stm32f7xx_hal_conf.h.
+# renovate: datasource=git-tags packageName=https://github.com/STMicroelectronics/stm32f7xx_hal_driver.git
+ARG STM32F7_HAL_DRIVER_TAG=v1.3.3
+ARG STM32F7_HAL_DRIVER_SHA=e1446fa12ffda80ea1016faf349e45b2047fff12
+RUN git clone --depth=1 --branch=${STM32F7_HAL_DRIVER_TAG} \
+      https://github.com/STMicroelectronics/stm32f7xx_hal_driver.git /opt/stm32/f7-hal-driver \
+ && cd /opt/stm32/f7-hal-driver \
+ && [ "$(git rev-parse HEAD)" = "${STM32F7_HAL_DRIVER_SHA}" ]
+ENV STM32F7_HAL_DRIVER_PATH=/opt/stm32/f7-hal-driver
+
+# The CMSIS device files: the register definitions, system_stm32f7xx.c and the
+# startup code for each part. They include the CMSIS core headers, which are
+# at CMSIS_PATH, and carry no linker script.
+# renovate: datasource=git-tags packageName=https://github.com/STMicroelectronics/cmsis_device_f7.git
+ARG STM32F7_CMSIS_DEVICE_TAG=v1.2.10
+ARG STM32F7_CMSIS_DEVICE_SHA=2352e888e821aa0f4fe549bd5ea81d29c67a3222
+RUN git clone --depth=1 --branch=${STM32F7_CMSIS_DEVICE_TAG} \
+      https://github.com/STMicroelectronics/cmsis_device_f7.git /opt/stm32/f7-cmsis-device \
+ && cd /opt/stm32/f7-cmsis-device \
+ && [ "$(git rev-parse HEAD)" = "${STM32F7_CMSIS_DEVICE_SHA}" ]
+ENV STM32F7_CMSIS_DEVICE_PATH=/opt/stm32/f7-cmsis-device
+
+RUN chown -R developer:developer /opt/stm32
+
 USER developer
 WORKDIR /home/src

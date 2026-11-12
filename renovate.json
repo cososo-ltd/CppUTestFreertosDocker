@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Bumps the upstream tag+SHA pins in dockerfile.host, the digest its FROM line pins the cpputest base at, and the SHA-pinned actions in the publish workflow. Each upstream pin carries a '# renovate:' comment naming its datasource, repository and versioning. A green pull request merges itself; see README.md.",
+  "description": "Bumps the upstream tag+SHA pins in dockerfile.host and dockerfile.cross, the digest its FROM line pins the cpputest base at, and the SHA-pinned actions in the publish workflow. Each upstream pin carries a '# renovate:' comment naming its datasource, repository and versioning. A green pull request merges itself; see README.md.",
   "enabledManagers": [
     "custom.regex",
     "dockerfile",
@@ -20,7 +20,7 @@
       "customType": "regex",
       "description": "A '# renovate:' comment followed by the ARG <NAME>_TAG (or _BRANCH) and ARG <NAME>_SHA pair it describes.",
       "managerFilePatterns": [
-        "/^dockerfile\\.host$/"
+        "/^dockerfile\\.(host|cross)$/"
       ],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>\\S+) packageName=(?<packageName>\\S+)(?: versioning=(?<versioning>\\S+))?\\nARG (?<depName>\\w+)_(?:TAG|BRANCH)=(?<currentValue>\\S+)\\nARG \\w+_SHA=(?<currentDigest>[0-9a-f]{40})\\n"

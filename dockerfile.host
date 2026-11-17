@@ -115,8 +115,8 @@ RUN git clone --depth=1 --branch=${LITTLEFS_TAG} \
 ENV LITTLEFS_PATH=/opt/littlefs
 
 # renovate: datasource=git-tags packageName=https://github.com/Mbed-TLS/mbedtls.git
-ARG MBEDTLS_TAG=v3.6.7
-ARG MBEDTLS_SHA=068ff080b369adfac81509f9b57b2afabaf82dc5
+ARG MBEDTLS_TAG=v3.6.8
+ARG MBEDTLS_SHA=82e69999f91126589a28b70dd75b69fbcabe2711
 RUN git clone --depth=1 --branch=${MBEDTLS_TAG} \
       https://github.com/Mbed-TLS/mbedtls.git /opt/mbedtls \
  && cd /opt/mbedtls \

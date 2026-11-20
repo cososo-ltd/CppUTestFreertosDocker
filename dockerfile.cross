@@ -41,8 +41,8 @@ RUN pip install --no-cache-dir --break-system-packages behave==1.3.3
 # The HAL driver is ST's peripheral library. It ships a configuration template
 # and no configuration, so a project supplies its own stm32f7xx_hal_conf.h.
 # renovate: datasource=git-tags packageName=https://github.com/STMicroelectronics/stm32f7xx_hal_driver.git
-ARG STM32F7_HAL_DRIVER_TAG=v1.3.3
-ARG STM32F7_HAL_DRIVER_SHA=e1446fa12ffda80ea1016faf349e45b2047fff12
+ARG STM32F7_HAL_DRIVER_TAG=v1.3.4
+ARG STM32F7_HAL_DRIVER_SHA=e87904585ac637409e7697a1992d3ff7a7c13586
 RUN git clone --depth=1 --branch=${STM32F7_HAL_DRIVER_TAG} \
       https://github.com/STMicroelectronics/stm32f7xx_hal_driver.git /opt/stm32/f7-hal-driver \
  && cd /opt/stm32/f7-hal-driver \

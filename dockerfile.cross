@@ -53,8 +53,8 @@ ENV STM32F7_HAL_DRIVER_PATH=/opt/stm32/f7-hal-driver
 # startup code for each part. They include the CMSIS core headers, which are
 # at CMSIS_PATH, and carry no linker script.
 # renovate: datasource=git-tags packageName=https://github.com/STMicroelectronics/cmsis_device_f7.git
-ARG STM32F7_CMSIS_DEVICE_TAG=v1.2.10
-ARG STM32F7_CMSIS_DEVICE_SHA=2352e888e821aa0f4fe549bd5ea81d29c67a3222
+ARG STM32F7_CMSIS_DEVICE_TAG=v1.2.11
+ARG STM32F7_CMSIS_DEVICE_SHA=52e4aad017cd5daa760cb5803f96dfa77a0d6d85
 RUN git clone --depth=1 --branch=${STM32F7_CMSIS_DEVICE_TAG} \
       https://github.com/STMicroelectronics/cmsis_device_f7.git /opt/stm32/f7-cmsis-device \
  && cd /opt/stm32/f7-cmsis-device \
